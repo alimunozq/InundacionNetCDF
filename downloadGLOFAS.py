@@ -3,6 +3,14 @@ import os
 import sys
 import json
 
+# Obtener las credenciales desde variables de entorno
+CDSAPI_URL = os.getenv("CDSAPI_URL")  # URL de la API de Copernicus
+CDSAPI_KEY = os.getenv("CDSAPI_KEY")  # Clave de la API (UID:API_KEY)
+
+# Configurar el cliente de la API de Copernicus
+c = cdsapi.Client(url=CDSAPI_URL, key=CDSAPI_KEY)
+
+
 # Asegúrate de que tu script pueda recibir estos parámetros
 lat_min = float(sys.argv[1])
 long_min = float(sys.argv[2])
@@ -32,7 +40,6 @@ def fetch_rlevel(north, south, west, east):
         "area": [north, west, south, east],  # Asegúrate de que esto esté correcto
     }
 
-    client = cdsapi.Client()
 
     try:
         dataset = "cems-glofas-forecast"
