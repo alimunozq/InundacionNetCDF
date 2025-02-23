@@ -1,0 +1,6 @@
+cdsapi
+requests
+netCDF4
+xarray
+numpy
+pandas
