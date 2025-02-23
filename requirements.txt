@@ -4,3 +4,4 @@ netCDF4
 xarray
 numpy
 pandas
+base64
