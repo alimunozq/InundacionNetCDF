@@ -8,7 +8,7 @@ CDSAPI_URL = os.getenv("CDSAPI_URL")  # URL de la API de Copernicus
 CDSAPI_KEY = os.getenv("CDSAPI_KEY")  # Clave de la API (UID:API_KEY)
 
 # Configurar el cliente de la API de Copernicus
-c = cdsapi.Client(url=CDSAPI_URL, key=CDSAPI_KEY)
+client = cdsapi.Client(url=CDSAPI_URL, key=CDSAPI_KEY)
 
 
 # Coordenadas de toda la región de Coquimbo
