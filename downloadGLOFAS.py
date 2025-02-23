@@ -1,6 +1,6 @@
 import cdsapi
 import os
-import sys
+#import sys
 import json
 
 # Obtener las credenciales desde variables de entorno
@@ -11,11 +11,11 @@ CDSAPI_KEY = os.getenv("CDSAPI_KEY")  # Clave de la API (UID:API_KEY)
 c = cdsapi.Client(url=CDSAPI_URL, key=CDSAPI_KEY)
 
 
-# Asegúrate de que tu script pueda recibir estos parámetros
-lat_min = float(sys.argv[1])
-long_min = float(sys.argv[2])
-lat_max = float(sys.argv[3])
-long_max = float(sys.argv[4])
+# Coordenadas de toda la región de Coquimbo
+lat_min = -32.28247
+long_min = -71.71782
+lat_max = -29.0366
+long_max = -69.809361
 
 # Luego usa estas coordenadas en tu solicitud a la API
 
