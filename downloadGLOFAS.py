@@ -1,11 +1,15 @@
 import cdsapi
 import os
-#import sys
 import json
+import base64
+import requests
 
 # Obtener las credenciales desde variables de entorno
 CDSAPI_URL = os.getenv("CDSAPI_URL")  # URL de la API de Copernicus
 CDSAPI_KEY = os.getenv("CDSAPI_KEY")  # Clave de la API (UID:API_KEY)
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")  # Token de GitHub
+GITHUB_REPO = os.getenv("GITHUB_REPO")  # Reemplaza con tu usuario y repositorio
+GITHUB_BRANCH = os.getenv("GITHUB_BRANCH")  # Reemplaza con la rama que deseas usar
 
 # Configurar el cliente de la API de Copernicus
 client = cdsapi.Client(url=CDSAPI_URL, key=CDSAPI_KEY)
@@ -49,8 +53,31 @@ def fetch_rlevel(north, south, west, east):
         
         #result = {"message": f"Data downloaded successfully to {output}"}
         #print(json.dumps(result))  # Devolver JSON
+        # Subir el archivo a GitHub
+        subir_archivo_a_github(output_file)
     except Exception as e:
         print(json.dumps({"error": str(e)}))
+
+def subir_archivo_a_github(file_path):
+    with open(file_path, "rb") as file:
+        file_content = file.read()
+
+    url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{file_path}"
+    headers = {
+        "Authorization": f"token {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github.v3+json",
+    }
+    data = {
+        "message": f"Subir archivo {file_path}",
+        "content": base64.b64encode(file_content).decode("utf-8"),
+        "branch": GITHUB_BRANCH,
+    }
+    response = requests.put(url, headers=headers, json=data)
+    if response.status_code == 201:
+        print(f"Archivo {file_path} subido a GitHub correctamente.")
+    else:
+        print(f"Error al subir el archivo: {response.status_code}")
+        print(response.json())
 
 if __name__ == "__main__":
     #download_dir = mkdir()
