@@ -47,9 +47,10 @@ def fetch_rlevel(north, south, west, east):
 
     try:
         dataset = "cems-glofas-forecast"
+        output_file = "20250221.nc"
         #output = os.path.join(download_dir, 'glofas_output_prediction_1Cv2-control.nc')
         #client.retrieve(dataset, request, output)
-        client.retrieve(dataset, request, "20250221.nc")
+        client.retrieve(dataset, request, output_file)
         
         #result = {"message": f"Data downloaded successfully to {output}"}
         #print(json.dumps(result))  # Devolver JSON
