@@ -3,6 +3,7 @@ import os
 import json
 import base64
 import requests
+from datetime import datetime
 
 # Obtener las credenciales desde variables de entorno
 CDSAPI_URL = os.getenv("CDSAPI_URL")  # URL de la API de Copernicus
@@ -14,46 +15,41 @@ GITHUB_BRANCH = os.getenv("GITHUB_BRANCH")  # Reemplaza con la rama que deseas u
 # Configurar el cliente de la API de Copernicus
 client = cdsapi.Client(url=CDSAPI_URL, key=CDSAPI_KEY)
 
+# Obtener la fecha actual
+fecha_actual = datetime.now()
 
-# Coordenadas de toda la región de Coquimbo
-lat_min = -32.28247
-long_min = -71.71782
-lat_max = -29.0366
-long_max = -69.809361
-
-# Luego usa estas coordenadas en tu solicitud a la API
-
-def mkdir():
-    download_dir = os.path.join(os.path.expanduser('~'), 'Downloads', 'glofas')
-    os.makedirs(download_dir, exist_ok=True)
-    return download_dir
+# Guardar año, mes y día en strings separados
+year = str(fecha_actual.year)
+month = str(fecha_actual.month).zfill(2)  # Asegura 2 dígitos
+day = str(fecha_actual.day).zfill(2)  
 
 #def fetch_rlevel(download_dir, north, south, west, east):
-def fetch_rlevel(north, south, west, east):
+def fetch_rlevel(day, month, year):
+    # Coordenadas de toda la región de Coquimbo
+    north = -29.0366    # Latitud máxima
+    south = -32.28247   # Latitud mínima
+    west = -71.71782    # Longitud mínima
+    east = -69.809361   # Longitud máxima
+
     request = {
         "system_version": ["operational"],
         "hydrological_model": ["lisflood"],
         "product_type": ["control_forecast"],
         "variable": ["river_discharge_in_the_last_24_hours"],
-        "year": ["2025"],
-        "month": ["02"],
-        "day": ["21"],
-        "leadtime_hour": ["720"],
+        "year": year,
+        "month": month,
+        "day": day,
+        "leadtime_hour": ["1"],
         "data_format": "netcdf",
         "download_format": "unarchived",
         "area": [north, west, south, east],  # Asegúrate de que esto esté correcto
     }
 
-
     try:
         dataset = "cems-glofas-forecast"
-        output_file = "20250221.nc"
-        #output = os.path.join(download_dir, 'glofas_output_prediction_1Cv2-control.nc')
-        #client.retrieve(dataset, request, output)
+        output_file = f"glofas_forecast_{year}{month}{day}.nc"  
         client.retrieve(dataset, request, output_file)
         
-        #result = {"message": f"Data downloaded successfully to {output}"}
-        #print(json.dumps(result))  # Devolver JSON
         # Subir el archivo a GitHub
         subir_archivo_a_github(output_file)
     except Exception as e:
@@ -80,6 +76,57 @@ def subir_archivo_a_github(file_path):
         print(f"Error al subir el archivo: {response.status_code}")
         print(response.json())
 
-if __name__ == "__main__":
-    #download_dir = mkdir()
-    fetch_rlevel(lat_max, lat_min, long_min, long_max)  # Ajusta el orden
+
+def gestionar_archivos_en_repositorio(max_archivos):
+    # Obtener la lista de archivos en la carpeta "download"
+    url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/download"
+    headers = {
+        "Authorization": f"token {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github.v3+json",
+    }
+    response = requests.get(url, headers=headers)
+    
+    if response.status_code != 200:
+        print(f"Error al obtener la lista de archivos: {response.status_code}")
+        return
+
+    # Obtener los archivos y sus fechas de creación
+    archivos = response.json()
+    archivos_con_fecha = []
+    for archivo in archivos:
+        if archivo["type"] == "file" and archivo["name"].endswith(".nc"):
+            fecha_creacion = archivo["name"].split("_")[2].split(".")[0]  # Extraer fecha del nombre
+            fecha_creacion = datetime.strptime(fecha_creacion, "%Y%m%d")
+            archivos_con_fecha.append((archivo["name"], archivo["path"], archivo["sha"], fecha_creacion))
+
+    # Ordenar archivos de más antiguo a más nuevo
+    archivos_con_fecha.sort(key=lambda x: x[3])
+
+    # Eliminar archivos si se supera el límite
+    while len(archivos_con_fecha) > max_archivos:
+        archivo_a_eliminar = archivos_con_fecha.pop(0)  # Obtener el archivo más antiguo
+        eliminar_archivo_de_github(archivo_a_eliminar[1], archivo_a_eliminar[2])
+        print(f"Archivo eliminado: {archivo_a_eliminar[0]}")
+
+def eliminar_archivo_de_github(file_path, sha):
+    url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{file_path}"
+    headers = {
+        "Authorization": f"token {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github.v3+json",
+    }
+    data = {
+        "message": f"Eliminar archivo {file_path}",
+        "sha": sha,
+        "branch": GITHUB_BRANCH,
+    }
+    response = requests.delete(url, headers=headers, json=data)
+    if response.status_code == 200:
+        print(f"Archivo {file_path} eliminado correctamente.")
+    else:
+        print(f"Error al eliminar el archivo: {response.status_code}")
+        print(response.json())
+
+if __name__ == "_main_":
+
+    fetch_rlevel(day, month, year)  # Ajusta el orden
+    gestionar_archivos_en_repositorio(max_archivos=5)
