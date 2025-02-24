@@ -131,7 +131,7 @@ def eliminar_archivo_de_github(file_path, sha):
         print(f"Error al eliminar el archivo: {response.status_code}")
         print(response.json())
 
-if __name__ == "_main_":
+if __name__ == "__main__":
     print('hola')
     fetch_rlevel(day, month, year)  # Ajusta el orden
     gestionar_archivos_en_repositorio(max_archivos=5)
