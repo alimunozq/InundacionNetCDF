@@ -26,6 +26,7 @@ day = str(fecha_actual.day).zfill(2)
 print('fecha actual', fecha_actual)
 #def fetch_rlevel(download_dir, north, south, west, east):
 def fetch_rlevel(day, month, year):
+    print('Ingresando fetch_rlevel')
     # Coordenadas de toda la región de Coquimbo
     north = -29.0366    # Latitud máxima
     south = -32.28247   # Latitud mínima
@@ -40,7 +41,7 @@ def fetch_rlevel(day, month, year):
         "year": year,
         "month": month,
         "day": day,
-        "leadtime_hour": ["1"],
+        "leadtime_hour": ["24"],
         "data_format": "netcdf",
         "download_format": "unarchived",
         "area": [north, west, south, east],  # Asegúrate de que esto esté correcto
