@@ -5,6 +5,7 @@ import base64
 import requests
 from datetime import datetime
 
+print('Comenzando con código')
 # Obtener las credenciales desde variables de entorno
 CDSAPI_URL = os.getenv("CDSAPI_URL")  # URL de la API de Copernicus
 CDSAPI_KEY = os.getenv("CDSAPI_KEY")  # Clave de la API (UID:API_KEY)
@@ -22,7 +23,7 @@ fecha_actual = datetime.now()
 year = str(fecha_actual.year)
 month = str(fecha_actual.month).zfill(2)  # Asegura 2 dígitos
 day = str(fecha_actual.day).zfill(2)  
-
+print('fecha actual', fecha actual)
 #def fetch_rlevel(download_dir, north, south, west, east):
 def fetch_rlevel(day, month, year):
     # Coordenadas de toda la región de Coquimbo
@@ -49,7 +50,7 @@ def fetch_rlevel(day, month, year):
         dataset = "cems-glofas-forecast"
         output_file = f"glofas_forecast_{year}{month}{day}.nc"  
         client.retrieve(dataset, request, output_file)
-        
+        print('Archivo descargado')
         # Subir el archivo a GitHub
         subir_archivo_a_github(output_file)
     except Exception as e:
@@ -59,7 +60,7 @@ def subir_archivo_a_github(file_path):
     with open(file_path, "rb") as file:
         file_content = file.read()
 
-    url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{file_path}"
+    url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/download/{file_path}"
     headers = {
         "Authorization": f"token {GITHUB_TOKEN}",
         "Accept": "application/vnd.github.v3+json",
