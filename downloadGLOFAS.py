@@ -5,7 +5,7 @@ import base64
 import requests
 from datetime import datetime
 
-print('Comenzando con código')
+
 # Obtener las credenciales desde variables de entorno
 CDSAPI_URL = os.getenv("CDSAPI_URL")  # URL de la API de Copernicus
 CDSAPI_KEY = os.getenv("CDSAPI_KEY")  # Clave de la API (UID:API_KEY)
@@ -23,10 +23,7 @@ fecha_actual = datetime.now()
 year = str(fecha_actual.year)
 month = str(fecha_actual.month).zfill(2)  # Asegura 2 dígitos
 day = str(fecha_actual.day).zfill(2)  
-print('fecha actual', fecha_actual)
-print('year', year)
-print('month', month)
-print('day',day)
+
 #def fetch_rlevel(download_dir, north, south, west, east):
 def fetch_rlevel(day, month, year):
     print('Ingresando fetch_rlevel')
@@ -52,7 +49,7 @@ def fetch_rlevel(day, month, year):
 
     try:
         dataset = "cems-glofas-forecast"
-        output_file = f"glofas_forecast_{year}{month}{day}.nc"  
+        output_file = f"{year}{month}{day}.nc"  
         client.retrieve(dataset, request, output_file)
         print('Archivo descargado')
         # Subir el archivo a GitHub
@@ -98,9 +95,10 @@ def gestionar_archivos_en_repositorio(max_archivos):
     # Obtener los archivos y sus fechas de creación
     archivos = response.json()
     archivos_con_fecha = []
+    print('archivos', archivos)
     for archivo in archivos:
         if archivo["type"] == "file" and archivo["name"].endswith(".nc"):
-            fecha_creacion = archivo["name"].split("_")[2].split(".")[0]  # Extraer fecha del nombre
+            #fecha_creacion = archivo["name"].split("_")[2].split(".")[0]  # Extraer fecha del nombre
             fecha_creacion = datetime.strptime(fecha_creacion, "%Y%m%d")
             archivos_con_fecha.append((archivo["name"], archivo["path"], archivo["sha"], fecha_creacion))
 
@@ -132,6 +130,6 @@ def eliminar_archivo_de_github(file_path, sha):
         print(response.json())
 
 if __name__ == "__main__":
-    print('hola')
+
     fetch_rlevel(day, month, year)  # Ajusta el orden
     gestionar_archivos_en_repositorio(max_archivos=5)
