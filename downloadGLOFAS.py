@@ -23,7 +23,7 @@ fecha_actual = datetime.now()
 year = str(fecha_actual.year)
 month = str(fecha_actual.month).zfill(2)  # Asegura 2 dígitos
 day = str(fecha_actual.day).zfill(2)  
-print('fecha actual', fecha actual)
+print('fecha actual', fecha_actual)
 #def fetch_rlevel(download_dir, north, south, west, east):
 def fetch_rlevel(day, month, year):
     # Coordenadas de toda la región de Coquimbo
