@@ -99,7 +99,7 @@ def gestionar_archivos_en_repositorio(max_archivos):
     for archivo in archivos:
         if archivo["type"] == "file" and archivo["name"].endswith(".nc"):
             #fecha_creacion = archivo["name"].split("_")[2].split(".")[0]  # Extraer fecha del nombre
-            fecha_creacion = datetime.strptime(fecha_creacion, "%Y%m%d")
+            fecha_creacion = datetime.strptime(archivo["name"], "%Y%m%d")
             archivos_con_fecha.append((archivo["name"], archivo["path"], archivo["sha"], fecha_creacion))
 
     # Ordenar archivos de más antiguo a más nuevo
