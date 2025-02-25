@@ -132,4 +132,4 @@ def eliminar_archivo_de_github(file_path, sha):
 if __name__ == "__main__":
 
     fetch_rlevel(day, month, year)  # Ajusta el orden
-    gestionar_archivos_en_repositorio(max_archivos=5)
+    gestionar_archivos_en_repositorio(max_archivos=3)
