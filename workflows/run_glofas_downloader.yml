@@ -36,4 +36,4 @@ jobs:
           GITHUB_REPO: ${{ secrets.REPO }}
           GITHUB_BRANCH: ${{ secrets.BRANCH }}
         run: |
-          python scripts/downloadGLOFAS.py
+          python downloadGLOFAS.py
