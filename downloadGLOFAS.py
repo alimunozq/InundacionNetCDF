@@ -95,7 +95,6 @@ def gestionar_archivos_en_repositorio(max_archivos):
     # Obtener los archivos y sus fechas de creación
     archivos = response.json()
     archivos_con_fecha = []
-    print('archivos', archivos)
     for archivo in archivos:
         if archivo["type"] == "file" and archivo["name"].endswith(".nc"):
             nombre_sin_extension = archivo["name"].replace(".nc", "")
