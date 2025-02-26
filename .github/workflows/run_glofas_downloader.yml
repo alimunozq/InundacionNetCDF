@@ -33,7 +33,7 @@ jobs:
           CDSAPI_URL: ${{ secrets.CDSAPI_URL }}
           CDSAPI_KEY: ${{ secrets.CDSAPI_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_REPO: ${{ secrets.REPO }}
-          GITHUB_BRANCH: ${{ secrets.BRANCH }}
+          REPO: ${{ secrets.REPO }}
+          BRANCH: ${{ secrets.BRANCH }}
         run: |
           python downloadGLOFAS.py
