@@ -32,7 +32,7 @@ jobs:
         env:
           CDSAPI_URL: ${{ secrets.CDSAPI_URL }}
           CDSAPI_KEY: ${{ secrets.CDSAPI_KEY }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_PAT }}
           GITHUB_REPO: ${{ secrets.REPO }}
           GITHUB_BRANCH: ${{ secrets.BRANCH }}
         run: |
