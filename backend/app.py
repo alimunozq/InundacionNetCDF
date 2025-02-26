@@ -12,6 +12,7 @@ import requests
 import os
 from datetime import datetime
 from flask import Flask, request, jsonify
+import logging
 
 # Configuración
 GITHUB_REPO = "alimunozq/InundacionNetCDF"  # Reemplaza con tu usuario/repositorio
@@ -21,6 +22,9 @@ DOWNLOAD_FOLDER = "download"  # Carpeta en GitHub donde están los archivos
 app = Flask(__name__)
 dataset = None
 df = None
+# Configurar logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 def obtener_ultimo_archivo():
     """
@@ -41,18 +45,18 @@ def obtener_ultimo_archivo():
         archivos_nc = [archivo for archivo in archivos if archivo["name"].endswith(".nc")]
 
         if not archivos_nc:
-            print("❌ No se encontraron archivos .nc en la carpeta.")
+            logger.info("❌ No se encontraron archivos .nc en la carpeta.")
             return None
 
         # Ordenar archivos por nombre (asumiendo que el nombre contiene la fecha)
         archivos_nc.sort(key=lambda x: x["name"], reverse=True)
         ultimo_archivo = archivos_nc[0]
 
-        print(f"📂 Último archivo encontrado: {ultimo_archivo['name']}")
+        logger.info(f"📂 Último archivo encontrado: {ultimo_archivo['name']}")
         return ultimo_archivo["download_url"]
 
     except Exception as e:
-        print(f"❌ Error al obtener el último archivo: {e}")
+        logger.info(f"❌ Error al obtener el último archivo: {e}")
         return None
 
 def descargar_archivo(url, ruta_local):
@@ -64,9 +68,9 @@ def descargar_archivo(url, ruta_local):
         response.raise_for_status()
         with open(ruta_local, "wb") as file:
             file.write(response.content)
-        print(f"✅ Archivo descargado y guardado en: {ruta_local}")
+        logger.info(f"✅ Archivo descargado y guardado en: {ruta_local}")
     except Exception as e:
-        print(f"❌ Error al descargar el archivo: {e}")
+        logger.info(f"❌ Error al descargar el archivo: {e}")
 
 def leer_nc(ruta_archivo):
     """
@@ -75,7 +79,7 @@ def leer_nc(ruta_archivo):
     global dataset
     global df
     try:
-        print(f"📂 Abriendo archivo: {ruta_archivo}\n")
+        logger.info(f"📂 Abriendo archivo: {ruta_archivo}\n")
 
         # Cargar el archivo NetCDF
         dataset = xr.open_dataset(ruta_archivo)
@@ -86,10 +90,10 @@ def leer_nc(ruta_archivo):
 
         # Cerrar dataset
         dataset.close()
-        print("\n✅ Lectura finalizada.")
+        logger.info("\n✅ Lectura finalizada.")
 
     except Exception as e:
-        print(f"❌ Error al leer el archivo: {e}")
+        logger.info(f"❌ Error al leer el archivo: {e}")
 
 def getValue(lat, lon):
     """
@@ -103,10 +107,10 @@ def getValue(lat, lon):
             valor_dis24 = float(filtered_df['dis24'].values[0])
             return valor_dis24
         else:
-            print(f"❌ No se encontró ningún dato para lat={lat}, lon={lon}")
+            logger.info(f"❌ No se encontró ningún dato para lat={lat}, lon={lon}")
             return None
     except Exception as e:
-        print(f"❌ Error al filtrar el DataFrame: {e}")
+        logger.info(f"❌ Error al filtrar el DataFrame: {e}")
         return None
 
 @app.route('/consultar', methods=['GET'])
@@ -138,7 +142,7 @@ def consultar():
 
         # Eliminar el archivo descargado (opcional)
         os.remove(ruta_local)
-        print(f"🗑️ Archivo {ruta_local} eliminado.")
+        logger.info(f"🗑️ Archivo {ruta_local} eliminado.")
 
         # Devolver el resultado
         return jsonify({"lat": lat, "lon": lon, "dis24": valor_dis24})
@@ -146,6 +150,11 @@ def consultar():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route('/test', methods=['GET'])
+def test():
+    logger.info("🔍 Esto es una prueba")
+    return jsonify({"message": "Prueba exitosa"})
+
 if __name__ == '__main__':
     # Iniciar el servidor Flask
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=5000, debug=True)
