@@ -58,6 +58,8 @@ def fetch_rlevel(day, month, year):
         print(json.dumps({"error": str(e)}))
 
 def subir_archivo_a_github(file_path):
+    print(f"Intentando subir archivo: {file_path}")
+    print(f"Ruta completa: https://api.github.com/repos/{GITHUB_REPO}/contents/download/{file_path}")
     with open(file_path, "rb") as file:
         file_content = file.read()
 
@@ -80,6 +82,7 @@ def subir_archivo_a_github(file_path):
 
 
 def gestionar_archivos_en_repositorio(max_archivos):
+    print('Entrando a gestionar archivos')
     # Obtener la lista de archivos en la carpeta "download"
     url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/download"
     headers = {
