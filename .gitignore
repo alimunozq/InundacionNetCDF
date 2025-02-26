@@ -1,0 +1,20 @@
+# Ignorar archivos de entorno
+.env
+
+# Ignorar archivos de Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pyc
+
+# Ignorar archivos de IDE
+.idea/
+.vscode/
+
+# Ignorar archivos temporales
+*.tmp
+*.log
+
+# Ignorar archivos descargados localmente
+backend/ultimo_archivo.nc
