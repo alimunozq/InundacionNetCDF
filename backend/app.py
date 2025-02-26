@@ -100,7 +100,8 @@ def getValue(lat, lon):
         filtered_df = df[(df['latitude'] == lat) & (df['longitude_rounded'] == lon + 360)]
         if not filtered_df.empty:
             # Devolver el valor de dis24
-            return filtered_df['dis24'].values[0]
+            valor_dis24 = float(filtered_df['dis24'].values[0])
+            return valor_dis24
         else:
             print(f"❌ No se encontró ningún dato para lat={lat}, lon={lon}")
             return None
