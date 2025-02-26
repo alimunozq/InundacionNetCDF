@@ -10,7 +10,8 @@ from datetime import datetime
 CDSAPI_URL = os.getenv("CDSAPI_URL")  # URL de la API de Copernicus
 CDSAPI_KEY = os.getenv("CDSAPI_KEY")  # Clave de la API (UID:API_KEY)
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")  # Token de GitHub
-GITHUB_REPO = os.getenv("REPO")  # Reemplaza con tu usuario y repositorio
+#GITHUB_REPO = os.getenv("REPO")  # Reemplaza con tu usuario y repositorio
+GITHUB_REPO = "alimunozq/InundacionNetCDF"
 GITHUB_BRANCH = os.getenv("BRANCH")  # Reemplaza con la rama que deseas usar
 
 # Configurar el cliente de la API de Copernicus
