@@ -11,9 +11,11 @@
   "dependencies": {
     "@shadcn/ui": "^0.0.4",
     "autoprefixer": "^10.4.20",
+    "leaflet": "^1.9.4",
     "next": "15.1.7",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "react-leaflet": "^5.0.0"
   },
   "devDependencies": {
     "postcss": "^8.5.3",
