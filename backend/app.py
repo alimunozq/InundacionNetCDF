@@ -7,21 +7,18 @@ Created on Fri Feb 21 14:40:32 2025
 """
 
 import xarray as xr
-import pandas as pd
 import requests
 import os
-from datetime import datetime
 from flask import Flask, request, jsonify
 import logging
 
 # Configuración
 GITHUB_REPO = "alimunozq/InundacionNetCDF"  # Reemplaza con tu usuario/repositorio
-GITHUB_TOKEN = os.getenv("MY_GITHUB_PAT") # Reemplaza con tu PAT
+GITHUB_TOKEN = os.getenv("MY_GITHUB_PAT")  # Reemplaza con tu PAT
 DOWNLOAD_FOLDER = "download"  # Carpeta en GitHub donde están los archivos
 
 app = Flask(__name__)
 dataset = None
-df = None
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -77,19 +74,15 @@ def leer_nc(ruta_archivo):
     Lee un archivo NetCDF y lo procesa.
     """
     global dataset
-    global df
     try:
         logger.info(f"📂 Abriendo archivo: {ruta_archivo}\n")
 
         # Cargar el archivo NetCDF
         dataset = xr.open_dataset(ruta_archivo)
 
-        # Convertir a DataFrame
-        df = dataset.to_dataframe().reset_index()
-        df['longitude_rounded'] = df['longitude'].round(3)
+        # Redondear la longitud (si es necesario)
+        dataset['longitude'] = dataset['longitude'].round(3)
 
-        # Cerrar dataset
-        dataset.close()
         logger.info("\n✅ Lectura finalizada.")
 
     except Exception as e:
@@ -99,18 +92,17 @@ def getValue(lat, lon):
     """
     Obtiene el valor de la variable 'dis24' para una latitud y longitud específicas.
     """
-    global df
+    global dataset
     try:
-        filtered_df = df[(df['latitude'] == lat) & (df['longitude_rounded'] == lon + 360)]
-        if not filtered_df.empty:
-            # Devolver el valor de dis24
-            valor_dis24 = float(filtered_df['dis24'].values[0])
-            return valor_dis24
-        else:
-            logger.info(f"❌ No se encontró ningún dato para lat={lat}, lon={lon}")
-            return None
+        # Filtrar usando xarray
+        filtered_data = dataset.sel(latitude=lat, longitude=lon + 360, method="nearest")
+
+        # Obtener el valor de dis24
+        valor_dis24 = float(filtered_data['dis24'].values)
+        return valor_dis24
+
     except Exception as e:
-        logger.info(f"❌ Error al filtrar el DataFrame: {e}")
+        logger.info(f"❌ Error al filtrar el dataset: {e}")
         return None
 
 @app.route('/consultar', methods=['GET'])
