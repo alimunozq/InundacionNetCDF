@@ -77,7 +77,6 @@ def leer_nc(ruta_archivo):
     try:
         logger.info(f"📂 Abriendo archivo: {ruta_archivo}\n")
         dataset = xr.open_dataset(ruta_archivo)
-        dataset['longitude'] = dataset['longitude'].round(3)
         logger.info("\n✅ Lectura finalizada.")
     except Exception as e:
         logger.info(f"❌ Error al leer el archivo: {e}")
@@ -89,7 +88,8 @@ def getValue(lat, lon):
     global dataset
     try:
         filtered_data = dataset.sel(latitude=lat, longitude=lon + 360, method="nearest")
-        valor_dis24 = float(filtered_data['dis24'].values)
+        valor_dis24 = float(filtered_data['dis24'].values.item())
+
         return valor_dis24
     except Exception as e:
         logger.info(f"❌ Error al filtrar el dataset: {e}")
