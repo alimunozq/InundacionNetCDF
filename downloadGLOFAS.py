@@ -29,6 +29,7 @@ day = str(fecha_actual.day).zfill(2)
 #def fetch_rlevel(download_dir, north, south, west, east):
 def fetch_rlevel(day, month, year):
     print('Ingresando fetch_rlevel')
+    print(year, '-', month, '-', day)
     # Coordenadas de toda la región de Coquimbo
     north = -29.0366    # Latitud máxima
     south = -32.28247   # Latitud mínima
