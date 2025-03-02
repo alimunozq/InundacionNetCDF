@@ -1,5 +1,8 @@
-xarray
-pandas
+cdsapi
 requests
-flask
 netCDF4
+xarray
+numpy
+pandas
+datetime
+Flask-Cors
