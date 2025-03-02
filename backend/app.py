@@ -11,6 +11,7 @@ import requests
 import os
 from flask import Flask, request, jsonify
 import logging
+from flask_cors import CORS
 
 # Configuración
 GITHUB_REPO = "alimunozq/InundacionNetCDF"  # Reemplaza con tu usuario/repositorio
@@ -18,6 +19,8 @@ GITHUB_TOKEN = os.getenv("MY_GITHUB_PAT")  # Reemplaza con tu PAT
 DOWNLOAD_FOLDER = "download"  # Carpeta en GitHub donde están los archivos
 
 app = Flask(__name__)
+CORS(app, resources={r"/*": {"origins": "https://inundacion-frontend.vercel.app"}})
+
 dataset = None
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
@@ -28,7 +31,6 @@ def obtener_ultimo_archivo():
     Obtiene el último archivo de la carpeta `download` en GitHub.
     """
     try:
-        # URL de la API de GitHub para obtener el contenido de la carpeta
         url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{DOWNLOAD_FOLDER}"
         headers = {
             "Authorization": f"token {GITHUB_TOKEN}",
@@ -37,7 +39,6 @@ def obtener_ultimo_archivo():
         response = requests.get(url, headers=headers)
         response.raise_for_status()
 
-        # Obtener la lista de archivos
         archivos = response.json()
         archivos_nc = [archivo for archivo in archivos if archivo["name"].endswith(".nc")]
 
@@ -45,7 +46,6 @@ def obtener_ultimo_archivo():
             logger.info("❌ No se encontraron archivos .nc en la carpeta.")
             return None
 
-        # Ordenar archivos por nombre (asumiendo que el nombre contiene la fecha)
         archivos_nc.sort(key=lambda x: x["name"], reverse=True)
         ultimo_archivo = archivos_nc[0]
 
@@ -76,15 +76,9 @@ def leer_nc(ruta_archivo):
     global dataset
     try:
         logger.info(f"📂 Abriendo archivo: {ruta_archivo}\n")
-
-        # Cargar el archivo NetCDF
         dataset = xr.open_dataset(ruta_archivo)
-
-        # Redondear la longitud (si es necesario)
         dataset['longitude'] = dataset['longitude'].round(3)
-
         logger.info("\n✅ Lectura finalizada.")
-
     except Exception as e:
         logger.info(f"❌ Error al leer el archivo: {e}")
 
@@ -94,13 +88,9 @@ def getValue(lat, lon):
     """
     global dataset
     try:
-        # Filtrar usando xarray
         filtered_data = dataset.sel(latitude=lat, longitude=lon + 360, method="nearest")
-
-        # Obtener el valor de dis24
         valor_dis24 = float(filtered_data['dis24'].values)
         return valor_dis24
-
     except Exception as e:
         logger.info(f"❌ Error al filtrar el dataset: {e}")
         return None
@@ -111,34 +101,22 @@ def consultar():
     Endpoint para consultar el valor de dis24 para una latitud y longitud específicas.
     """
     try:
-        # Obtener lat y lon de los parámetros de la URL
         lat = float(request.args.get('lat'))
         lon = float(request.args.get('lon'))
-
-        # Obtener el último archivo de la carpeta `download`
         url_ultimo_archivo = obtener_ultimo_archivo()
         if not url_ultimo_archivo:
             return jsonify({"error": "No se pudo obtener el último archivo."}), 500
 
-        # Descargar el archivo
         ruta_local = "ultimo_archivo.nc"
         descargar_archivo(url_ultimo_archivo, ruta_local)
-
-        # Leer y procesar el archivo
         leer_nc(ruta_local)
-
-        # Obtener el valor de dis24
         valor_dis24 = getValue(lat, lon)
         if valor_dis24 is None:
             return jsonify({"error": "No se encontró ningún dato para la latitud y longitud proporcionadas."}), 404
 
-        # Eliminar el archivo descargado (opcional)
         os.remove(ruta_local)
         logger.info(f"🗑️ Archivo {ruta_local} eliminado.")
-
-        # Devolver el resultado
         return jsonify({"lat": lat, "lon": lon, "dis24": valor_dis24})
-
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -148,5 +126,4 @@ def test():
     return jsonify({"message": "Prueba exitosa"})
 
 if __name__ == '__main__':
-    # Iniciar el servidor Flask
     app.run(host='0.0.0.0', port=5000, debug=True)

@@ -10,10 +10,10 @@ from datetime import datetime
 CDSAPI_URL = os.getenv("CDSAPI_URL")  # URL de la API de Copernicus
 CDSAPI_KEY = os.getenv("CDSAPI_KEY")  # Clave de la API (UID:API_KEY)
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")  # Token de GitHub
-#GITHUB_REPO = os.getenv("REPO")  # Reemplaza con tu usuario y repositorio
+#GITHUB_REPO = os.getenv("REPO")  
 GITHUB_REPO = "alimunozq/InundacionNetCDF"
 GITHUB_BRANCH = "main"
-#GITHUB_BRANCH = os.getenv("BRANCH")  # Reemplaza con la rama que deseas usar
+#GITHUB_BRANCH = os.getenv("BRANCH")  
 
 # Configurar el cliente de la API de Copernicus
 client = cdsapi.Client(url=CDSAPI_URL, key=CDSAPI_KEY)
@@ -47,7 +47,7 @@ def fetch_rlevel(day, month, year):
         "leadtime_hour": ["24"],
         "data_format": "netcdf",
         "download_format": "unarchived",
-        "area": [north, west, south, east],  # Asegúrate de que esto esté correcto
+        "area": [north, west, south, east],  
     }
 
     try:
@@ -137,4 +137,4 @@ def eliminar_archivo_de_github(file_path, sha):
 if __name__ == "__main__":
 
     fetch_rlevel(day, month, year)  # Ajusta el orden
-    gestionar_archivos_en_repositorio(max_archivos=3)
+    gestionar_archivos_en_repositorio(max_archivos=5)
