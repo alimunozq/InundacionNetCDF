@@ -15,6 +15,8 @@ const Home = () => {
   const [latestTime, setLatestTime] = useState(null);
   const [coords, setCoords] = useState(null);
   const [result, setResult] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+
 
   // Obtiene la fecha más reciente
   useEffect(() => {
@@ -41,6 +43,7 @@ const Home = () => {
     if (coords) {
       console.log('entro a coords');
       const handleSearch = async () => {
+        setIsLoading(true);
         try {
           console.log('control1');
           // Construir la URL con los parámetros de latitud y longitud
@@ -67,6 +70,8 @@ const Home = () => {
         } catch (error) {
           console.error("Error al obtener datos:", error);
           setResult({ error: error.message });
+        }  finally {
+          setIsLoading(false);
         }
       };
       handleSearch();
@@ -83,9 +88,13 @@ const Home = () => {
         {coords && (
           <div style={{ marginTop: '20px', padding: '10px', border: '1px solid #ccc', borderRadius: '5px' }}>
             <h2 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '10px' }}>Coordenadas:</h2>
-            <p>Latitud: {coords.lat}</p>
-            <p>Longitud: {coords.lng}</p>
-            <p>Dis24: {JSON.stringify(result)}</p>
+            <p>Latitud: {coords.lat?.toFixed(3)}</p>
+            <p>Longitud: {coords.lng?.toFixed(3)}</p>
+            {isLoading ? (
+      <p>⏳ Buscando información...</p> // 🔥 Mensaje de carga
+    ) : (
+      <p>Dis24: {result?.dis24 ? `${parseFloat(result.dis24).toFixed(3)} [m³/s]` : "No disponible"}</p>
+    )}
           </div>
         )}
       </div>
