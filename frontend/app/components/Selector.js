@@ -6,10 +6,10 @@ import '../styles/Selector.css';
 const Selector = ({ onChange, latestTime, selectedT }) => {
   const options = [
     { value: 5, label: 'T = 5 años' },
-    { value: 10, label: 'T = 10 años' },
+    //{ value: 10, label: 'T = 10 años' },
     { value: 20, label: 'T = 20 años' },
-    { value: 25, label: 'T = 25 años' },
-    { value: 50, label: 'T = 50 años' },
+    //{ value: 25, label: 'T = 25 años' },
+    //{ value: 50, label: 'T = 50 años' },
   ];
 
   // Función para formatear la fecha
