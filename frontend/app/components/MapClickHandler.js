@@ -1,7 +1,7 @@
 'use client'; // Marca este componente como Client Component
 
-import { useEffect } from 'react';
 import { useMap } from 'react-leaflet';
+import React, { useState, useEffect } from 'react';
 
 const MapClickHandler = ({setCoords}) => {
   const map = useMap();
