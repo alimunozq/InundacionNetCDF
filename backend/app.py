@@ -80,8 +80,13 @@ def getValue(dataset, lat, lon):
     Obtiene el valor de la variable más relevante del dataset para una latitud y longitud específicas.
     """
     try:
-        variable = list(dataset.data_vars.keys())[0]  # Tomar la primera variable disponible
-        filtered_data = dataset.sel(latitude=lat, longitude=lon + 360, method="nearest")
+        variable = list(dataset.data_vars.keys())[0]
+
+        if variable == 'dis24':
+            # El cambio de longitud aplica solamente para dis24
+            filtered_data = dataset.sel(latitude=lat, longitude=lon + 360, method="nearest")
+        else:
+            filtered_data = dataset.sel(latitude=lat, longitude=lon, method="nearest")
         valor = float(filtered_data[variable].values.item())
         return {variable: valor}
     except Exception as e:
