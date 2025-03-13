@@ -97,17 +97,21 @@ const Home = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {Object.entries(result.return_threshold).map(([archivo, datos]) => {
-                          const periodoRetorno = archivo.match(/rl_(\d+\.?\d*)/);
-                          const periodo = periodoRetorno ? periodoRetorno[1] : archivo;
-                          const valor = Object.values(datos)[0];
-                          return (
-                            <tr key={archivo}>
+                        {Object.entries(result.return_threshold)
+                          .map(([archivo, datos]) => {
+                            const periodoRetorno = archivo.match(/rl_(\d+\.?\d*)/);
+                            const periodo = periodoRetorno ? parseFloat(periodoRetorno[1]) : null;
+                            const valor = Object.values(datos)[0];
+                            return { periodo, valor };
+                          })
+                          .filter(item => item.periodo !== null)
+                          .sort((a, b) => a.periodo - b.periodo) // Orden ascendente
+                          .map(({ periodo, valor }, index) => (
+                            <tr key={index}>
                               <td style={{ border: '1px solid #ccc', padding: '5px' }}>{periodo}</td>
-                              <td style={{ border: '1px solid #ccc', padding: '5px' }}>{valor ? `${valor.toFixed(3)} [m³/s]` : "No disponible"}</td>
+                              <td style={{ border: '1px solid #ccc', padding: '5px' }}>{valor ? `${valor.toFixed(3)} ` : "No disponible"}</td>
                             </tr>
-                          );
-                        })}
+                          ))}
                       </tbody>
                     </table>
                   </div>
