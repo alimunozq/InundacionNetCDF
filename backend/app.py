@@ -81,7 +81,7 @@ def getValue(dataset, lat, lon):
     """
     try:
         variable = list(dataset.data_vars.keys())[0]
-
+        print('var: ',variable)
         if variable == 'dis24':
             # El cambio de longitud aplica solamente para dis24
             filtered_data = dataset.sel(latitude=lat, longitude=lon + 360, method="nearest")
@@ -114,9 +114,12 @@ def consultar():
             os.remove(ruta_local)
         
         # Obtener todos los archivos de 'ReturnThreshold'
-        archivos_return = obtener_archivos("return_threshold", obtener_todos=True)
+        archivos_return = obtener_archivos("FloodThreshold", obtener_todos=True)
+        print('archivos_return', archivos_return)
+        archivos_nc = [archivo for archivo in archivos_return if archivo["name"].endswith(".nc")]
+        print('archivos_nc', archivos_nc)
         resultados_return = {}
-        for archivo in archivos_return:
+        for archivo in archivos_nc:
             ruta_local = archivo["name"]
             descargar_archivo(archivo["download_url"], ruta_local)
             dataset = leer_nc(ruta_local)
