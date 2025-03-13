@@ -86,7 +86,7 @@ def getValue(dataset, lat, lon):
             # El cambio de longitud aplica solamente para dis24
             filtered_data = dataset.sel(latitude=lat, longitude=lon + 360, method="nearest")
         else:
-            filtered_data = dataset.sel(latitude=lat, longitude=lon, method="nearest")
+            filtered_data = dataset.sel(lat=lat, lon=lon, method="nearest")
         valor = float(filtered_data[variable].values.item())
         return {variable: valor}
     except Exception as e:
