@@ -85,22 +85,31 @@ const Home = () => {
               <p>⏳ Buscando información...</p>
             ) : (
               <>
-                <p>Dis24: {result?.dis24 ? `${parseFloat(result.dis24).toFixed(3)} [m³/s]` : "No disponible"}</p>
+                <p>Dis24: {result?.dis24 && !isNaN(result.dis24) ? `${parseFloat(result.dis24).toFixed(3)} [m³/s]` : "No disponible"}</p>
                 {result?.return_threshold && (
                   <div>
                     <h3>Valores de ReturnThreshold:</h3>
-                    <ul>
-                      {Object.entries(result.return_threshold).map(([archivo, datos]) => (
-                        <li key={archivo}>
-                          {archivo}:
-                          <ul>
-                            {Object.entries(datos).map(([variable, valor]) => (
-                              <li key={variable}>{variable}: {valor ? `${valor.toFixed(3)} [m³/s]` : "No disponible"}</li>
-                            ))}
-                          </ul>
-                        </li>
-                      ))}
-                    </ul>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px' }}>
+                      <thead>
+                        <tr>
+                          <th style={{ border: '1px solid #ccc', padding: '5px' }}>Periodo de Retorno</th>
+                          <th style={{ border: '1px solid #ccc', padding: '5px' }}>Q [m³/s]</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {Object.entries(result.return_threshold).map(([archivo, datos]) => {
+                          const periodoRetorno = archivo.match(/rl_(\d+\.?\d*)/);
+                          const periodo = periodoRetorno ? periodoRetorno[1] : archivo;
+                          const valor = Object.values(datos)[0];
+                          return (
+                            <tr key={archivo}>
+                              <td style={{ border: '1px solid #ccc', padding: '5px' }}>{periodo}</td>
+                              <td style={{ border: '1px solid #ccc', padding: '5px' }}>{valor ? `${valor.toFixed(3)} [m³/s]` : "No disponible"}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
                 )}
               </>
