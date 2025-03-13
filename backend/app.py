@@ -8,7 +8,7 @@ from flask_cors import CORS
 # Configuración
 GITHUB_REPO = "alimunozq/InundacionNetCDF"  # Reemplaza con tu usuario/repositorio
 GITHUB_TOKEN = os.getenv("MY_GITHUB_PAT")  # Reemplaza con tu PAT
-CARPETAS = {"download": "download", "return_threshold": "ReturnThreshold"}  # Diccionario de carpetas disponibles
+CARPETAS = {"download": "download", "FloodThreshold": "FloodThreshold"}  # Diccionario de carpetas disponibles
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "https://inundacion-frontend.vercel.app"}})
