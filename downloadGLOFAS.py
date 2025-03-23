@@ -26,7 +26,6 @@ year = str(fecha_actual.year)
 month = str(fecha_actual.month).zfill(2)  # Asegura 2 dígitos
 day = str(fecha_actual.day).zfill(2)  
 
-#def fetch_rlevel(download_dir, north, south, west, east):
 def fetch_rlevel(day, month, year):
     print('Ingresando fetch_rlevel')
     print(year, '-', month, '-', day)
@@ -44,7 +43,36 @@ def fetch_rlevel(day, month, year):
         "year": [year],
         "month": [month],
         "day": [day],
-        "leadtime_hour": ["24"],
+        "leadtime_hour": ["24",
+        "48",
+        "72",
+        "96",
+        "120",
+        "144",
+        "168",
+        "192",
+        "216",
+        "240",
+        "264",
+        "288",
+        "312",
+        "336",
+        "360",
+        "384",
+        "408",
+        "432",
+        "456",
+        "480",
+        "504",
+        "528",
+        "552",
+        "576",
+        "600",
+        "624",
+        "648",
+        "672",
+        "696",
+        "720"],
         "data_format": "netcdf",
         "download_format": "unarchived",
         "area": [north, west, south, east],  
