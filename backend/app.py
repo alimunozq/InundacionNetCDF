@@ -93,6 +93,56 @@ def getValue(dataset, lat, lon):
         logger.info(f"❌ Error al filtrar el dataset: {e}")
         return None
 
+def getValuesForAllForecasts(dataset, lat, lon):
+    try:
+        # Obtener la primera variable del dataset
+        variable = list(dataset.data_vars.keys())[0]
+        
+        # Verificar si el dataset tiene la dimensión forecast_period
+        if 'forecast_period' not in dataset.dims:
+            print("El dataset no contiene la dimensión forecast_period")
+            return None
+            
+        # Obtener todos los valores de forecast_period disponibles
+        forecast_periods_ns = dataset['forecast_period'].values
+        forecast_periods_hours = (forecast_periods_ns / (1e9 * 60 * 60)).astype(int)  # Convertir a horas enteras
+        print('Forecast periods disponibles (horas):', forecast_periods_hours)
+        
+        results = {}
+        
+        for fp_ns, fp_hours in zip(forecast_periods_ns, forecast_periods_hours):
+            try:
+                # Seleccionar datos para el forecast_period actual
+                if variable == 'dis24':
+                    # Ajuste de longitud para dis24
+                    filtered_data = dataset.sel(
+                        latitude=lat,
+                        longitude=lon + 360,
+                        forecast_period=fp_ns,
+                        method="nearest"
+                    )
+                else:
+                    filtered_data = dataset.sel(
+                        lat=lat,
+                        lon=lon,
+                        forecast_period=fp_ns,
+                        method="nearest"
+                    )
+                
+                # Obtener el valor
+                valor = float(filtered_data[variable].values.item())
+                results[fp_hours] = valor
+                
+            except Exception as e:
+                print(f"Error procesando forecast_period {fp_hours}: {e}")
+                continue
+                
+        return results if results else None
+        
+    except Exception as e:
+        print(f"Error general al filtrar el dataset: {e}")
+        return None
+
 @app.route('/consultar', methods=['GET'])
 def consultar():
     """
@@ -124,7 +174,7 @@ def consultar():
             descargar_archivo(archivo["download_url"], ruta_local)
             dataset = leer_nc(ruta_local)
             if dataset:
-                resultados_return[archivo["name"]] = getValue(dataset, lat, lon)
+                resultados_return[archivo["name"]] = getValuesForAllForecasts(dataset, lat, lon)
             os.remove(ruta_local)
 
         return jsonify({
