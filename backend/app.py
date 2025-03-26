@@ -160,7 +160,7 @@ def consultar():
             descargar_archivo(archivo_download[0]["download_url"], ruta_local)
             dataset = leer_nc(ruta_local)
             if dataset:
-                resultado_download = getValue(dataset, lat, lon)
+                resultado_download = getValuesForAllForecasts(dataset, lat, lon)
             os.remove(ruta_local)
         
         # Obtener todos los archivos de 'ReturnThreshold'
@@ -174,7 +174,7 @@ def consultar():
             descargar_archivo(archivo["download_url"], ruta_local)
             dataset = leer_nc(ruta_local)
             if dataset:
-                resultados_return[archivo["name"]] = getValuesForAllForecasts(dataset, lat, lon)
+                resultados_return[archivo["name"]] = getValue(dataset, lat, lon)
             os.remove(ruta_local)
 
         return jsonify({
