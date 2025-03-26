@@ -161,13 +161,12 @@ def consultar():
             dataset = leer_nc(ruta_local)
             if dataset:
                 resultado_download = getValuesForAllForecasts(dataset, lat, lon)
+                print('resultado_download', resultado_download)
             os.remove(ruta_local)
         
         # Obtener todos los archivos de 'ReturnThreshold'
         archivos_return = obtener_archivos("FloodThreshold", obtener_todos=True)
-        print('archivos_return', archivos_return)
         archivos_nc = [archivo for archivo in archivos_return if archivo["name"].endswith(".nc")]
-        print('archivos_nc', archivos_nc)
         resultados_return = {}
         for archivo in archivos_nc:
             ruta_local = archivo["name"]
