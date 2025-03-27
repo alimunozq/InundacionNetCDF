@@ -12,11 +12,20 @@ GITHUB_TOKEN = os.getenv("MY_GITHUB_PAT")
 CARPETAS = {"download": "download", "FloodThreshold": "FloodThreshold"}
 
 app = Flask(__name__)
+
+# Configuración CORS actualizada
 CORS(app, resources={
-    r"/*": {
-        "origins": ["https://inundacion-frontend.vercel.app", "http://localhost:3000"],
-        "methods": ["GET", "POST"],
-        "allow_headers": ["Content-Type"]
+    r"/.*": {
+        "origins": [
+            "https://inundacion-frontend.vercel.app",
+            "https://inundacion-frontend.vercel.app/",
+            "http://localhost:3000",
+            "http://localhost:5173"
+        ],
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"],
+        "supports_credentials": True,
+        "max_age": 86400
     }
 })
 
@@ -89,16 +98,16 @@ def getValue(dataset, lat, lon):
     """
     try:
         variable = list(dataset.data_vars.keys())[0]
-        print('var: ',variable)
+        logger.info(f'Variable encontrada: {variable}')
         if variable == 'dis24':
             # El cambio de longitud aplica solamente para dis24
-            filtered_data = dataset.sel(latitude=lat, longitude=lon + 360, method="nearest")
+            filtered_data = dataset.sel(latitude=lat, longitude=(lon + 360) % 360, method="nearest")
         else:
             filtered_data = dataset.sel(lat=lat, lon=lon, method="nearest")
         valor = float(filtered_data[variable].values.item())
         return {variable: valor}
     except Exception as e:
-        logger.info(f"❌ Error al filtrar el dataset: {e}")
+        logger.error(f"Error al filtrar el dataset: {e}")
         return None
 
 def getValuesForAllForecasts(dataset, lat, lon):
@@ -158,8 +167,15 @@ def getValuesForAllForecasts(dataset, lat, lon):
         logger.error(f"Error en getValuesForAllForecasts: {str(e)}")
         return None
 
-@app.route('/consultar', methods=['GET'])
+@app.route('/consultar', methods=['GET', 'OPTIONS'])
 def consultar():
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'preflight'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', '*')
+        response.headers.add('Access-Control-Allow-Methods', '*')
+        return response
+    
     try:
         logger.info("Iniciando consulta")
         
