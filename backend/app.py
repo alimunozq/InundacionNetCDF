@@ -4,191 +4,207 @@ import os
 from flask import Flask, request, jsonify
 import logging
 from flask_cors import CORS
+import numpy as np
 
 # Configuración
-GITHUB_REPO = "alimunozq/InundacionNetCDF"  # Reemplaza con tu usuario/repositorio
-GITHUB_TOKEN = os.getenv("MY_GITHUB_PAT")  # Reemplaza con tu PAT
-CARPETAS = {"download": "download", "FloodThreshold": "FloodThreshold"}  # Diccionario de carpetas disponibles
+GITHUB_REPO = "alimunozq/InundacionNetCDF"
+GITHUB_TOKEN = os.getenv("MY_GITHUB_PAT")
+CARPETAS = {"download": "download", "FloodThreshold": "FloodThreshold"}
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "https://inundacion-frontend.vercel.app"}})
-
-dataset = None
+CORS(app, resources={
+    r"/*": {
+        "origins": ["https://inundacion-frontend.vercel.app", "http://localhost:3000"],
+        "methods": ["GET", "POST"],
+        "allow_headers": ["Content-Type"]
+    }
+})
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def obtener_archivos(carpeta, obtener_todos=False):
-    """
-    Obtiene el último archivo o todos los archivos de la carpeta seleccionada en GitHub.
-    """
     try:
         if carpeta not in CARPETAS:
-            logger.info("❌ Carpeta inválida.")
+            logger.error(f"Carpeta inválida: {carpeta}")
             return []
-        
+
         url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{CARPETAS[carpeta]}"
         headers = {
             "Authorization": f"token {GITHUB_TOKEN}",
             "Accept": "application/vnd.github.v3+json",
         }
-        response = requests.get(url, headers=headers)
+        
+        logger.info(f"Solicitando archivos de: {url}")
+        response = requests.get(url, headers=headers, timeout=10)
         response.raise_for_status()
 
         archivos = response.json()
-        archivos_nc = [archivo for archivo in archivos if archivo["name"].endswith(".nc")]
+        archivos_nc = [archivo for archivo in archivos if isinstance(archivo, dict) and archivo.get("name", "").endswith(".nc")]
 
         if not archivos_nc:
-            logger.info("❌ No se encontraron archivos .nc en la carpeta.")
+            logger.warning(f"No se encontraron archivos .nc en {carpeta}")
             return []
-        
-        archivos_nc.sort(key=lambda x: x["name"], reverse=True)
-        
+
+        archivos_nc.sort(key=lambda x: x.get("name", ""), reverse=True)
         return archivos_nc if obtener_todos else [archivos_nc[0]]
 
     except Exception as e:
-        logger.info(f"❌ Error al obtener los archivos: {e}")
+        logger.error(f"Error al obtener archivos de {carpeta}: {str(e)}")
         return []
 
 def descargar_archivo(url, ruta_local):
-    """
-    Descarga un archivo desde una URL y lo guarda localmente.
-    """
     try:
-        response = requests.get(url)
+        logger.info(f"Descargando archivo desde: {url}")
+        response = requests.get(url, timeout=10)
         response.raise_for_status()
+        
         with open(ruta_local, "wb") as file:
             file.write(response.content)
-        logger.info(f"✅ Archivo descargado y guardado en: {ruta_local}")
+            
+        logger.info(f"Archivo descargado: {ruta_local}")
+        return True
     except Exception as e:
-        logger.info(f"❌ Error al descargar el archivo: {e}")
+        logger.error(f"Error al descargar {url}: {str(e)}")
+        return False
 
 def leer_nc(ruta_archivo):
-    """
-    Lee un archivo NetCDF y lo procesa.
-    """
     try:
+        if not os.path.exists(ruta_archivo):
+            logger.error(f"Archivo no encontrado: {ruta_archivo}")
+            return None
+
+        logger.info(f"Leyendo archivo NetCDF: {ruta_archivo}")
         dataset = xr.open_dataset(ruta_archivo)
+        logger.info(f"Dataset cargado. Variables: {list(dataset.data_vars.keys())}")
         return dataset
     except Exception as e:
-        logger.info(f"❌ Error al leer el archivo: {e}")
-        return None
-
-def getValue(dataset, lat, lon):
-    """
-    Obtiene el valor de la variable más relevante del dataset para una latitud y longitud específicas.
-    """
-    try:
-        variable = list(dataset.data_vars.keys())[0]
-        print('var: ',variable)
-        if variable == 'dis24':
-            # El cambio de longitud aplica solamente para dis24
-            filtered_data = dataset.sel(latitude=lat, longitude=lon + 360, method="nearest")
-        else:
-            filtered_data = dataset.sel(lat=lat, lon=lon, method="nearest")
-        valor = float(filtered_data[variable].values.item())
-        return {variable: valor}
-    except Exception as e:
-        logger.info(f"❌ Error al filtrar el dataset: {e}")
+        logger.error(f"Error al leer {ruta_archivo}: {str(e)}")
         return None
 
 def getValuesForAllForecasts(dataset, lat, lon):
     try:
-        # Obtener la primera variable del dataset
-        variable = list(dataset.data_vars.keys())[0]
-        
-        # Verificar si el dataset tiene la dimensión forecast_period
-        if 'forecast_period' not in dataset.dims:
-            print("El dataset no contiene la dimensión forecast_period")
+        if dataset is None:
+            logger.error("Dataset es None")
             return None
-            
-        # Obtener todos los valores de forecast_period disponibles
-        forecast_periods_ns = dataset['forecast_period'].values
-        forecast_periods_hours = (forecast_periods_ns / (1e9 * 60 * 60)).astype(int)  # Convertir a horas enteras
-        print('Forecast periods disponibles (horas):', forecast_periods_hours)
-        
+
+        variable = list(dataset.data_vars.keys())[0]
+        logger.info(f"Procesando variable: {variable}")
+
+        if 'forecast_period' not in dataset.dims:
+            logger.error("Dataset no tiene dimensión forecast_period")
+            return None
+
+        forecast_periods = dataset['forecast_period'].values
+        logger.info(f"Valores de forecast_period: {forecast_periods}")
+
+        # Conversión segura a horas
+        try:
+            forecast_hours = (forecast_periods / (1e9 * 60 * 60)).astype(int)
+            logger.info(f"Periodos convertidos a horas: {forecast_hours}")
+        except Exception as e:
+            logger.error(f"Error convirtiendo forecast_period: {str(e)}")
+            return None
+
         results = {}
         
-        for fp_ns, fp_hours in zip(forecast_periods_ns, forecast_periods_hours):
+        for fp, hours in zip(forecast_periods, forecast_hours):
             try:
-                # Seleccionar datos para el forecast_period actual
                 if variable == 'dis24':
-                    # Ajuste de longitud para dis24
                     filtered_data = dataset.sel(
                         latitude=lat,
-                        longitude=lon + 360,
-                        forecast_period=fp_ns,
+                        longitude=(lon + 360) % 360,  # Manejo seguro de longitud
+                        forecast_period=fp,
                         method="nearest"
                     )
                 else:
                     filtered_data = dataset.sel(
                         lat=lat,
                         lon=lon,
-                        forecast_period=fp_ns,
+                        forecast_period=fp,
                         method="nearest"
                     )
-                
-                # Obtener el valor
+
                 valor = float(filtered_data[variable].values.item())
-                results[fp_hours] = valor
-                
+                results[hours] = valor
+                logger.info(f"Valor para {hours}h: {valor}")
+
             except Exception as e:
-                print(f"Error procesando forecast_period {fp_hours}: {e}")
+                logger.error(f"Error procesando {hours}h: {str(e)}")
                 continue
-                
+
         return results if results else None
-        
+
     except Exception as e:
-        print(f"Error general al filtrar el dataset: {e}")
+        logger.error(f"Error en getValuesForAllForecasts: {str(e)}")
         return None
 
 @app.route('/consultar', methods=['GET'])
 def consultar():
-    """
-    Endpoint para consultar el valor de dis24 para una latitud y longitud específicas.
-    """
     try:
-        lat = float(request.args.get('lat'))
-        lon = float(request.args.get('lon'))
+        logger.info("Iniciando consulta")
         
-        # Obtener el último archivo de 'download'
-        archivo_download = obtener_archivos("download", obtener_todos=False)
-        resultado_download = None
-        if archivo_download:
-            ruta_local = "ultimo_archivo.nc"
-            descargar_archivo(archivo_download[0]["download_url"], ruta_local)
-            dataset = leer_nc(ruta_local)
-            if dataset:
-                resultado_download = getValuesForAllForecasts(dataset, lat, lon)
-                print('resultado_download', resultado_download)
-            os.remove(ruta_local)
-        
-        # Obtener todos los archivos de 'ReturnThreshold'
-        archivos_return = obtener_archivos("FloodThreshold", obtener_todos=True)
-        archivos_nc = [archivo for archivo in archivos_return if archivo["name"].endswith(".nc")]
-        resultados_return = {}
-        for archivo in archivos_nc:
-            ruta_local = archivo["name"]
-            descargar_archivo(archivo["download_url"], ruta_local)
-            dataset = leer_nc(ruta_local)
-            if dataset:
-                resultados_return[archivo["name"]] = getValue(dataset, lat, lon)
-            os.remove(ruta_local)
+        # Validar parámetros
+        try:
+            lat = float(request.args.get('lat'))
+            lon = float(request.args.get('lon'))
+            logger.info(f"Coordenadas recibidas: lat={lat}, lon={lon}")
+        except (TypeError, ValueError) as e:
+            logger.error(f"Error en parámetros: {str(e)}")
+            return jsonify({"error": "Coordenadas inválidas"}), 400
 
-        return jsonify({
+        # Procesar archivo de pronóstico
+        resultado_download = None
+        archivo_download = obtener_archivos("download")
+        
+        if archivo_download:
+            ruta_local = "temp_download.nc"
+            if descargar_archivo(archivo_download[0]["download_url"], ruta_local):
+                dataset = leer_nc(ruta_local)
+                if dataset:
+                    resultado_download = getValuesForAllForecasts(dataset, lat, lon)
+                if os.path.exists(ruta_local):
+                    os.remove(ruta_local)
+
+        # Procesar archivos de umbrales
+        resultados_return = {}
+        archivos_return = obtener_archivos("FloodThreshold", obtener_todos=True)
+        
+        for archivo in archivos_return:
+            ruta_local = f"temp_{archivo['name']}"
+            if descargar_archivo(archivo["download_url"], ruta_local):
+                dataset = leer_nc(ruta_local)
+                if dataset:
+                    resultados_return[archivo["name"]] = getValuesForAllForecasts(dataset, lat, lon)
+                if os.path.exists(ruta_local):
+                    os.remove(ruta_local)
+
+        response = {
             "lat": lat,
             "lon": lon,
             "dis24": resultado_download,
             "return_threshold": resultados_return
-        })
+        }
+        
+        logger.info(f"Respuesta preparada: {response}")
+        return jsonify(response)
+
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"Error en endpoint /consultar: {str(e)}", exc_info=True)
+        return jsonify({"error": "Error interno del servidor"}), 500
 
 @app.route('/test', methods=['GET'])
 def test():
-    logger.info("🔍 Esto es una prueba")
-    return jsonify({"message": "Prueba exitosa"})
+    logger.info("Prueba de servicio")
+    return jsonify({
+        "status": "ok",
+        "message": "Servicio funcionando",
+        "endpoints": {
+            "/consultar": "Consulta datos de inundación",
+            "/test": "Prueba de servicio"
+        }
+    })
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
