@@ -62,6 +62,18 @@ def obtener_archivos(carpeta, obtener_todos=False):
     except Exception as e:
         logger.error(f"Error al obtener archivos de {carpeta}: {str(e)}")
         return []
+    
+def convert_numpy_types(obj):
+    """Convierte tipos numpy a tipos nativos de Python para serialización JSON"""
+    if isinstance(obj, (np.int32, np.int64)):
+        return int(obj)
+    elif isinstance(obj, (np.float32, np.float64)):
+        return float(obj)
+    elif isinstance(obj, dict):
+        return {str(k) if isinstance(k, (np.int32, np.int64)) else k: convert_numpy_types(v) for k, v in obj.items()}
+    elif isinstance(obj, (list, tuple)):
+        return [convert_numpy_types(x) for x in obj]
+    return obj
 
 def descargar_archivo(url, ruta_local):
     try:
@@ -126,9 +138,10 @@ def getValuesForAllForecasts(dataset, lat, lon):
         forecast_periods = dataset['forecast_period'].values
         logger.info(f"Valores de forecast_period: {forecast_periods}")
 
-        # Conversión segura a horas
+        # Conversión segura a horas y a tipo nativo
         try:
             forecast_hours = (forecast_periods / (1e9 * 60 * 60)).astype(int)
+            forecast_hours = [int(h) for h in forecast_hours]  # Convertir a lista de enteros nativos
             logger.info(f"Periodos convertidos a horas: {forecast_hours}")
         except Exception as e:
             logger.error(f"Error convirtiendo forecast_period: {str(e)}")
@@ -141,7 +154,7 @@ def getValuesForAllForecasts(dataset, lat, lon):
                 if variable == 'dis24':
                     filtered_data = dataset.sel(
                         latitude=lat,
-                        longitude=(lon + 360) % 360,  # Manejo seguro de longitud
+                        longitude=(lon + 360) % 360,
                         forecast_period=fp,
                         method="nearest"
                     )
@@ -220,6 +233,9 @@ def consultar():
             "dis24": resultado_download,
             "return_threshold": resultados_return
         }
+        
+        # Convertir tipos numpy antes de serializar
+        response = convert_numpy_types(response)
         
         logger.info(f"Respuesta preparada: {response}")
         return jsonify(response)
