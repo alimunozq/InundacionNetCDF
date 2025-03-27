@@ -83,6 +83,24 @@ def leer_nc(ruta_archivo):
         logger.error(f"Error al leer {ruta_archivo}: {str(e)}")
         return None
 
+def getValue(dataset, lat, lon):
+    """
+    Obtiene el valor de la variable más relevante del dataset para una latitud y longitud específicas.
+    """
+    try:
+        variable = list(dataset.data_vars.keys())[0]
+        print('var: ',variable)
+        if variable == 'dis24':
+            # El cambio de longitud aplica solamente para dis24
+            filtered_data = dataset.sel(latitude=lat, longitude=lon + 360, method="nearest")
+        else:
+            filtered_data = dataset.sel(lat=lat, lon=lon, method="nearest")
+        valor = float(filtered_data[variable].values.item())
+        return {variable: valor}
+    except Exception as e:
+        logger.info(f"❌ Error al filtrar el dataset: {e}")
+        return None
+
 def getValuesForAllForecasts(dataset, lat, lon):
     try:
         if dataset is None:
@@ -176,7 +194,7 @@ def consultar():
             if descargar_archivo(archivo["download_url"], ruta_local):
                 dataset = leer_nc(ruta_local)
                 if dataset:
-                    resultados_return[archivo["name"]] = getValuesForAllForecasts(dataset, lat, lon)
+                    resultados_return[archivo["name"]] = getValue(dataset, lat, lon)
                 if os.path.exists(ruta_local):
                     os.remove(ruta_local)
 
