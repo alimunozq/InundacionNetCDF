@@ -111,74 +111,82 @@ def getValue(dataset, lat, lon):
     try:
         variable = list(dataset.data_vars.keys())[0]
         logger.info(f'Variable encontrada: {variable}')
-        if variable == 'dis24':
-            # El cambio de longitud aplica solamente para dis24
-            filtered_data = dataset.sel(latitude=lat, longitude=(lon + 360) % 360, method="nearest")
+        
+        # Ajustar longitud para variables relacionadas con dis24
+        if variable in ['mean_dis24', 'std_dis24']:
+            adjusted_lon = (lon + 360) % 360
+            filtered_data = dataset[variable].sel(
+                latitude=lat,
+                longitude=adjusted_lon,
+                method="nearest"
+            )
         else:
-            filtered_data = dataset.sel(lat=lat, lon=lon, method="nearest")
-        valor = float(filtered_data[variable].values.item())
+            filtered_data = dataset[variable].sel(
+                lat=lat,
+                lon=lon,
+                method="nearest"
+            )
+        valor = float(filtered_data.values.item())
         return {variable: valor}
     except Exception as e:
         logger.error(f"Error al filtrar el dataset: {e}")
         return None
 
-def getValuesForAllForecasts(dataset, lat, lon):
+def getMeanStdForAllForecasts(dataset, lat, lon):
+    """Obtiene los valores de mean_dis24 y std_dis24 para todos los forecast_periods"""
     try:
         if dataset is None:
             logger.error("Dataset es None")
-            return None
+            return None, None
 
-        variable = list(dataset.data_vars.keys())[0]
-        logger.info(f"Procesando variable: {variable}")
+        # Verificar variables requeridas
+        if 'mean_dis24' not in dataset or 'std_dis24' not in dataset:
+            logger.error("Dataset no contiene las variables requeridas")
+            return None, None
 
-        if 'forecast_period' not in dataset.dims:
-            logger.error("Dataset no tiene dimensión forecast_period")
-            return None
-
+        # Obtener periodos de pronóstico
         forecast_periods = dataset['forecast_period'].values
-        logger.info(f"Valores de forecast_period: {forecast_periods}")
-
-        # Conversión segura a horas y a tipo nativo
-        try:
-            forecast_hours = (forecast_periods / (1e9 * 60 * 60)).astype(int)
-            forecast_hours = [int(h) for h in forecast_hours]  # Convertir a lista de enteros nativos
-            logger.info(f"Periodos convertidos a horas: {forecast_hours}")
-        except Exception as e:
-            logger.error(f"Error convirtiendo forecast_period: {str(e)}")
-            return None
-
-        results = {}
         
+        # Convertir a horas (asumiendo que forecast_period está en nanosegundos)
+        forecast_hours = (forecast_periods / (1e9 * 60 * 60)).astype(int)
+        forecast_hours = [int(h) for h in forecast_hours]
+
+        mean_results = {}
+        std_results = {}
+
         for fp, hours in zip(forecast_periods, forecast_hours):
             try:
-                if variable == 'dis24':
-                    filtered_data = dataset.sel(
-                        latitude=lat,
-                        longitude=(lon + 360) % 360,
-                        forecast_period=fp,
-                        method="nearest"
-                    )
-                else:
-                    filtered_data = dataset.sel(
-                        lat=lat,
-                        lon=lon,
-                        forecast_period=fp,
-                        method="nearest"
-                    )
+                # Ajustar longitud
+                adjusted_lon = (lon + 360) % 360
 
-                valor = float(filtered_data[variable].values.item())
-                results[hours] = valor
-                logger.info(f"Valor para {hours}h: {valor}")
+                # Obtener valores para mean_dis24
+                mean_val = dataset['mean_dis24'].sel(
+                    latitude=lat,
+                    longitude=adjusted_lon,
+                    forecast_period=fp,
+                    method="nearest"
+                ).values.item()
+
+                # Obtener valores para std_dis24
+                std_val = dataset['std_dis24'].sel(
+                    latitude=lat,
+                    longitude=adjusted_lon,
+                    forecast_period=fp,
+                    method="nearest"
+                ).values.item()
+
+                mean_results[hours] = float(mean_val)
+                std_results[hours] = float(std_val)
 
             except Exception as e:
-                logger.error(f"Error procesando {hours}h: {str(e)}")
+                logger.error(f"Error procesando forecast_period {fp}: {str(e)}")
                 continue
 
-        return results if results else None
+        return mean_results, std_results
 
     except Exception as e:
-        logger.error(f"Error en getValuesForAllForecasts: {str(e)}")
-        return None
+        logger.error(f"Error en getMeanStdForAllForecasts: {str(e)}")
+        return None, None
 
 @app.route('/consultar', methods=['GET', 'OPTIONS'])
 def consultar():
@@ -202,7 +210,8 @@ def consultar():
             return jsonify({"error": "Coordenadas inválidas"}), 400
 
         # Procesar archivo de pronóstico
-        resultado_download = None
+        dis24_mean = None
+        dis24_std = None
         archivo_download = obtener_archivos("download")
         
         if archivo_download:
@@ -210,7 +219,7 @@ def consultar():
             if descargar_archivo(archivo_download[0]["download_url"], ruta_local):
                 dataset = leer_nc(ruta_local)
                 if dataset:
-                    resultado_download = getValuesForAllForecasts(dataset, lat, lon)
+                    dis24_mean, dis24_std = getMeanStdForAllForecasts(dataset, lat, lon)
                 if os.path.exists(ruta_local):
                     os.remove(ruta_local)
 
@@ -230,7 +239,8 @@ def consultar():
         response = {
             "lat": lat,
             "lon": lon,
-            "dis24": resultado_download,
+            "dis24_mean": dis24_mean,
+            "dis24_std": dis24_std,
             "return_threshold": resultados_return
         }
         
