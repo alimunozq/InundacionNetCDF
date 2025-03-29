@@ -4,7 +4,7 @@ import json
 import base64
 import requests
 from datetime import datetime
-
+import xarray as xr
 
 # Obtener las credenciales desde variables de entorno
 CDSAPI_URL = os.getenv("CDSAPI_URL")  # URL de la API de Copernicus
@@ -38,7 +38,7 @@ def fetch_rlevel(day, month, year):
     request = {
         "system_version": ["operational"],
         "hydrological_model": ["lisflood"],
-        "product_type": ["control_forecast"],
+        "product_type": ["ensemble_perturbed_forecasts"],
         "variable": ["river_discharge_in_the_last_24_hours"],
         "year": [year],
         "month": [month],
@@ -57,22 +57,7 @@ def fetch_rlevel(day, month, year):
         "288",
         "312",
         "336",
-        "360",
-        "384",
-        "408",
-        "432",
-        "456",
-        "480",
-        "504",
-        "528",
-        "552",
-        "576",
-        "600",
-        "624",
-        "648",
-        "672",
-        "696",
-        "720"],
+        "360"],
         "data_format": "netcdf",
         "download_format": "unarchived",
         "area": [north, west, south, east],  
@@ -87,6 +72,41 @@ def fetch_rlevel(day, month, year):
         subir_archivo_a_github(output_file)
     except Exception as e:
         print(json.dumps({"error": str(e)}))
+
+
+def guardar_medias_y_desviaciones(archivo):
+
+    # Cargar el archivo descargado
+    dataset = xr.open_dataset(archivo)
+
+    # Calcular el promedio y la desviación estándar sobre la dimensión "number"
+    mean_ds = dataset.mean(dim="number")
+    std_ds = dataset.std(dim="number")
+
+    # Nuevo Dataset para almacenar las dos variables (media y desviación estándar)
+    combined_ds = xr.Dataset(
+        {
+            "mean_dis24": mean_ds["dis24"], 
+            "std_dis24": std_ds["dis24"],   
+        },
+        coords={
+            "latitude": dataset["latitude"],
+            "longitude": dataset["longitude"],
+            "forecast_period": dataset["forecast_period"],
+            "forecast_reference_time": dataset["forecast_reference_time"],
+        }
+    )
+
+    # sufijo "_st"
+    combined_file = archivo.replace(".nc", "_st.nc")
+
+    # Guardar las medias y desviaciones estándar en el mismo archivo
+    combined_ds.to_netcdf(combined_file)
+
+    print(f"Archivo guardado como: {combined_file}")
+
+    # Subir el archivo combinado a GitHub
+    subir_archivo_a_github(combined_file)
 
 def subir_archivo_a_github(file_path):
     print(f"Intentando subir archivo: {file_path}")
