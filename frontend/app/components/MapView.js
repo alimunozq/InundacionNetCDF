@@ -1,94 +1,95 @@
-'use client'; // Marca este componente como Client Component
+'use client';
 
-import React from 'react';
-import { MapContainer, TileLayer, useMap, useMapEvents, Marker } from 'react-leaflet';
+import React, { useEffect, useRef, useState } from 'react';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import GeoTIFFViewer from './GeoTIFFViewer';
 import LegendControl from './LegendControl';
-import MapClickHandler from './MapClickHandler'; // Importa el componente de manejo de clic
-import { useEffect, useState } from 'react';
 
-// Componente para agregar la capa WMS dinámicamente
-const WMSTileLayer = ({ url, options }) => {
-  const map = useMap();
+const MapView = ({ selectedT, latestTime, setCoords, isRasterVisible, opacity, selectedYear, onMapClick }) => {
+  const mapContainer = useRef(null);
+  const [map, setMap] = useState(null);
 
+  // Inicializar el mapa
   useEffect(() => {
+    if (typeof window === 'undefined') return;
 
-    const layer = L.tileLayer.wms(url, options);
+    const mapInstance = L.map(mapContainer.current).setView([-30.5, -71.0], 8);
 
-    // Maneja errores en la carga de la capa
-    layer.on('tileerror', (error) => {
-      console.error('Error al cargar la capa WMS:', error);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors',
+    }).addTo(mapInstance);
+
+    // Manejar clics en el mapa
+    mapInstance.on('click', (e) => {
+      const { lat, lng } = e.latlng;
+      setCoords({ lat, lng });
+      if (onMapClick) {
+        onMapClick({ lat, lng });
+      }
     });
 
-    map.addLayer(layer);
+    setMap(mapInstance);
 
     return () => {
-
-      map.removeLayer(layer); // Limpia la capa al desmontar
+      mapInstance.remove();
     };
-  }, [map, url, options]);
+  }, [setCoords, onMapClick]);
 
-  return null;
-};
+  // Cargar la capa WMS
+  useEffect(() => {
+    if (!map) return;
 
+    let wmsLayer = null;
 
-  
+    if (selectedT === '5' && latestTime) {
+      wmsLayer = L.tileLayer.wms('https://ows.globalfloods.eu/glofas-ows/ows.py', {
+        layers: 'sumALHEGE',
+        format: 'image/png',
+        time: latestTime,
+        transparent: true,
+        version: '1.3.0',
+        attribution: 'Globalfloods.eu',
+      }).addTo(map);
+    } else if (selectedT === '20' && latestTime) {
+      wmsLayer = L.tileLayer.wms('https://ows.globalfloods.eu/glofas-ows/ows.py', {
+        layers: 'sumALEEGE',
+        format: 'image/png',
+        time: latestTime,
+        transparent: true,
+        version: '1.3.0',
+        attribution: 'Globalfloods.eu',
+      }).addTo(map);
+    }
 
-const MapView = ({ selectedT, latestTime, setCoords }) => {
-  const center = [-30.0, -71.0]; // Coordenadas de Coquimbo, Chile
+    return () => {
+      if (wmsLayer) {
+        map.removeLayer(wmsLayer);
+      }
+    };
+  }, [map, selectedT, latestTime]);
 
   return (
-    <MapContainer
-      center={center}
-      zoom={10}
+    <div
+      ref={mapContainer}
       style={{ height: '100vh', width: '100%' }}
     >
-        
-      {/* Mapa base (OpenStreetMap) */}
-      <TileLayer
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-      />
-
-      {/* Capa WMS de Global Floods (sumALHEGE para T = 5) */}
-      {selectedT === '5' && latestTime && (
-        <WMSTileLayer
-          url="https://ows.globalfloods.eu/glofas-ows/ows.py"
-          options={{
-            layers: 'sumALHEGE',
-            format: 'image/png',
-            time: latestTime, // Usa la fecha más reciente
-            transparent: true,
-            version: '1.3.0',
-            attribution: 'Globalfloods.eu',
-          }}
+      {map && (
+        <GeoTIFFViewer
+          map={map}
+          isRasterVisible={isRasterVisible}
+          opacity={opacity}
+          selectedYear={selectedYear}
         />
       )}
 
-      {/* Capa WMS de Global Floods (sumALEEGE para T = 20) */}
-      {selectedT === '20' && latestTime && (
-        <WMSTileLayer
-          url="https://ows.globalfloods.eu/glofas-ows/ows.py"
-          options={{
-            layers: 'sumALEEGE', // Cambia el nombre de la capa
-            format: 'image/png',
-            time: latestTime, // Usa la fecha más reciente
-            transparent: true,
-            version: '1.3.0',
-            attribution: 'Globalfloods.eu',
-          }}
-        />
-      )}
-
-      {/* Leyenda */}
       {(selectedT === '5' || selectedT === '20') && (
-        <LegendControl legendImage={selectedT === '5' ? '/images/legend_T5.png' : '/images/legend_T20.png'} />
+        <LegendControl
+          legendImage={selectedT === '5' ? '/images/legend_T5.png' : '/images/legend_T20.png'}
+          map={map}
+        />
       )}
-
-      {/* Maneja el evento de clic en el mapa */}
-      <MapClickHandler setCoords={setCoords} />
-    </MapContainer>
+    </div>
   );
 };
 

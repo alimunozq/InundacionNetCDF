@@ -3,9 +3,8 @@ import React, { useState, useEffect } from 'react';
 import Selector from './components/Selector';
 import dynamic from 'next/dynamic';
 import { getLatestTime } from './utils/getLatestTime';
-import DEMOverlay from './components/DEMOverlay'; // Importa el componente DEMOverlay
+import ChartComponent from './components/Chart';
 
-// Carga dinámicamente MapView para evitar errores en SSR
 const MapView = dynamic(() => import('./components/MapView'), {
   ssr: false,
 });
@@ -16,9 +15,12 @@ const Home = () => {
   const [coords, setCoords] = useState(null);
   const [result, setResult] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [showDem, setShowDem] = useState(false);  // Controla la visibilidad del DEM
+  const [opacity, setOpacity] = useState(1);
+  const [selectedYear, setSelectedYear] = useState(null);
+  const [showChart, setShowChart] = useState(false);
+  const [clickPosition, setClickPosition] = useState(null);
 
-  // Obtiene la fecha más reciente
+  // Obtener la fecha más reciente
   useEffect(() => {
     const fetchLatestTime = async () => {
       const time = await getLatestTime(
@@ -35,41 +37,64 @@ const Home = () => {
 
   const handleTChange = (selectedOption) => {
     setSelectedT(selectedOption);
-    console.log('Período de retorno seleccionado:', selectedOption);
   };
 
-  useEffect(() => {
-    if (coords) {
-      console.log('Coordenadas seleccionadas:', coords);
-      const handleSearch = async () => {
-        setIsLoading(true);
-        try {
-          const url = new URL("https://inundacion-backend.onrender.com/consultar");
-          url.searchParams.append("lat", coords.lat);
-          url.searchParams.append("lon", coords.lng);
+  // Manejar clic en el mapa
+  const handleMapClick = (clickData) => {
+    setClickPosition(clickData);
+    setShowChart(true);
+  };
 
-          const response = await fetch(url.toString(), {
-            method: "GET",
-            headers: { "Content-Type": "application/json" },
-          });
-    
-          if (!response.ok) {
-            throw new Error("Error al obtener datos");
-          }
-    
-          const data = await response.json();
-          console.log('Datos recibidos:', data);
-          setResult(data);
-        } catch (error) {
-          console.error("Error al obtener datos:", error);
-          setResult({ error: error.message });
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      handleSearch();
-    }
+  // Obtener datos cuando cambian las coordenadas
+  useEffect(() => {
+    if (!coords) return;
+
+    const handleSearch = async () => {
+      setIsLoading(true);
+      try {
+        const url = new URL("https://inundacion-backend.onrender.com/consultar");
+        url.searchParams.append("lat", coords.lat);
+        url.searchParams.append("lon", coords.lng);
+
+        const response = await fetch(url.toString(), {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+        });
+
+        if (!response.ok) throw new Error("Error al obtener datos");
+        
+        const data = await response.json();
+        setResult(data);
+      } catch (error) {
+        console.error("Error al obtener datos:", error);
+        setResult({ error: error.message });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    handleSearch();
   }, [coords]);
+
+  const handleOpacityChange = (event) => {
+    setOpacity(parseFloat(event.target.value));
+  };
+
+  const yearDict = {
+    "T = 1.5 años": "1.5",
+    "T = 2 años": "2.0",
+    "T = 5 años": "5.0",
+    "T = 10 años": "10.0",
+    "T = 20 años": "20.0",
+    "T = 50 años": "50.0",
+    "T = 100 años": "100.0",
+    "T = 200 años": "200.0"
+  };
+
+  const handleYearChange = (event) => {
+    setSelectedYear(event.target.value ? yearDict[event.target.value] : null);
+  };
+
+  const isRasterVisible = selectedYear !== null;
 
   return (
     <div style={{ display: 'flex', height: '100vh' }}>
@@ -85,7 +110,7 @@ const Home = () => {
               <p>⏳ Buscando información...</p>
             ) : (
               <>
-                <p>Dis24: {result?.dis24 && !isNaN(result.dis24) ? `${parseFloat(result.dis24).toFixed(3)} [m³/s]` : "No disponible"}</p>
+                <p>Dis24: {result?.dis24 ? `${parseFloat(result.dis24).toFixed(3)} [m³/s]` : "No disponible"}</p>
                 {result?.return_threshold && (
                   <div>
                     <h3>Valores de ReturnThreshold:</h3>
@@ -105,7 +130,7 @@ const Home = () => {
                             return { periodo, valor };
                           })
                           .filter(item => item.periodo !== null)
-                          .sort((a, b) => a.periodo - b.periodo) // Orden ascendente
+                          .sort((a, b) => a.periodo - b.periodo)
                           .map(({ periodo, valor }, index) => (
                             <tr key={index}>
                               <td style={{ border: '1px solid #ccc', padding: '5px' }}>{periodo}</td>
@@ -121,18 +146,89 @@ const Home = () => {
           </div>
         )}
 
-        {/* Botón para mostrar/ocultar DEM */}
-        <button onClick={() => setShowDem(!showDem)}>
-          {showDem ? 'Ocultar DEM' : 'Cargar DEM'}
-        </button>
+        <select 
+          onChange={handleYearChange} 
+          value={selectedYear ? Object.keys(yearDict).find(key => yearDict[key] === selectedYear) : ''}
+          style={{ marginTop: '20px', width: '100%', padding: '8px' }}
+        >
+          <option value="">Selecciona un año</option>
+          {Object.keys(yearDict).map((key) => (
+            <option key={key} value={key}>
+              {key}
+            </option>
+          ))}
+        </select>
+
+        {isRasterVisible && (
+          <div style={{ marginTop: '20px' }}>
+            <label htmlFor="opacity">Opacidad del Raster: </label>
+            <input
+              type="range"
+              id="opacity"
+              min="0"
+              max="1"
+              step="0.1"
+              value={opacity}
+              onChange={handleOpacityChange}
+              style={{ width: '100%' }}
+            />
+            <span> {opacity.toFixed(1)}</span>
+          </div>
+        )}
       </div>
 
-      <div style={{ width: '80%' }}>
-        <MapView selectedT={selectedT} latestTime={latestTime} setCoords={setCoords} />
-      </div>
+      <div style={{ width: '80%', position: 'relative' }}>
+        <MapView
+          selectedT={selectedT}
+          latestTime={latestTime}
+          setCoords={setCoords}
+          isRasterVisible={isRasterVisible}
+          opacity={opacity}
+          selectedYear={selectedYear}
+          onMapClick={handleMapClick}
+        />
 
-      {/* Aquí se incluye el componente DEMOverlay */}
-      <DEMOverlay showDem={showDem} />
+        {showChart && result && (
+          <div style={{
+            position: 'absolute',
+            bottom: '20px',
+            right: '20px',
+            width: '50%',
+            height: '40%',
+            backgroundColor: 'white',
+            zIndex: 1000,
+            boxShadow: '0 0 15px rgba(0,0,0,0.3)',
+            borderRadius: '8px',
+            padding: '15px',
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+              <h3 style={{ margin: 0 }}>Análisis de Caudal</h3>
+              <button 
+                onClick={() => setShowChart(false)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#666',
+                  fontSize: '16px',
+                  cursor: 'pointer'
+                }}
+              >
+                ×
+              </button>
+            </div>
+            <div style={{ flex: 1 }}>
+              <ChartComponent data={result} />
+            </div>
+            {clickPosition && (
+              <div style={{ fontSize: '12px', color: '#666', marginTop: '5px' }}>
+                Posición: Lat {clickPosition.lat.toFixed(4)}, Lng {clickPosition.lng.toFixed(4)}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
