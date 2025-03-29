@@ -8,17 +8,14 @@ import LegendControl from './LegendControl';
 
 const MapView = ({ selectedT, latestTime, setCoords, isRasterVisible, opacity, selectedYear, onMapClick }) => {
   const mapContainer = useRef(null);
-  const mapRef = useRef(null);
-  const [initialized, setInitialized] = useState(false);
+  const [map, setMap] = useState(null);
 
-  // Inicializar el mapa solo una vez
+  // Inicializar el mapa
   useEffect(() => {
-    if (typeof window === 'undefined' || initialized) return;
+    if (typeof window === 'undefined') return;
 
-    // Crear el mapa de Leaflet con vista inicial
     const mapInstance = L.map(mapContainer.current).setView([-30.5, -71.0], 8);
 
-    // Añadir capa base
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap contributors',
     }).addTo(mapInstance);
@@ -32,17 +29,16 @@ const MapView = ({ selectedT, latestTime, setCoords, isRasterVisible, opacity, s
       }
     });
 
-    mapRef.current = mapInstance;
-    setInitialized(true);
+    setMap(mapInstance);
 
     return () => {
       mapInstance.remove();
     };
-  }, [initialized, setCoords, onMapClick]);
+  }, [setCoords, onMapClick]);
 
-  // Cargar la capa WMS según selectedT y latestTime
+  // Cargar la capa WMS
   useEffect(() => {
-    if (!mapRef.current) return;
+    if (!map) return;
 
     let wmsLayer = null;
 
@@ -54,7 +50,7 @@ const MapView = ({ selectedT, latestTime, setCoords, isRasterVisible, opacity, s
         transparent: true,
         version: '1.3.0',
         attribution: 'Globalfloods.eu',
-      }).addTo(mapRef.current);
+      }).addTo(map);
     } else if (selectedT === '20' && latestTime) {
       wmsLayer = L.tileLayer.wms('https://ows.globalfloods.eu/glofas-ows/ows.py', {
         layers: 'sumALEEGE',
@@ -63,37 +59,35 @@ const MapView = ({ selectedT, latestTime, setCoords, isRasterVisible, opacity, s
         transparent: true,
         version: '1.3.0',
         attribution: 'Globalfloods.eu',
-      }).addTo(mapRef.current);
+      }).addTo(map);
     }
 
     return () => {
       if (wmsLayer) {
-        mapRef.current.removeLayer(wmsLayer);
+        map.removeLayer(wmsLayer);
       }
     };
-  }, [selectedT, latestTime]);
+  }, [map, selectedT, latestTime]);
 
   return (
     <div
       ref={mapContainer}
       style={{ height: '100vh', width: '100%' }}
     >
-      {initialized && (
-        <>
-          <GeoTIFFViewer
-            map={mapRef.current}
-            isRasterVisible={isRasterVisible}
-            opacity={opacity}
-            selectedYear={selectedYear}
-          />
-          
-          {(selectedT === '5' || selectedT === '20') && (
-            <LegendControl
-              legendImage={selectedT === '5' ? '/images/legend_T5.png' : '/images/legend_T20.png'}
-              map={mapRef.current}
-            />
-          )}
-        </>
+      {map && (
+        <GeoTIFFViewer
+          map={map}
+          isRasterVisible={isRasterVisible}
+          opacity={opacity}
+          selectedYear={selectedYear}
+        />
+      )}
+
+      {(selectedT === '5' || selectedT === '20') && (
+        <LegendControl
+          legendImage={selectedT === '5' ? '/images/legend_T5.png' : '/images/legend_T20.png'}
+          map={map}
+        />
       )}
     </div>
   );
