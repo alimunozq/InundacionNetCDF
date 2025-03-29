@@ -28,10 +28,12 @@ const ColorBar = ({ min, max }) => {
 };
 
 const GeoTIFFViewer = ({ map, isRasterVisible, opacity, selectedYear }) => {
+  
   const [rasterLayer, setRasterLayer] = useState(null);
   const [minMaxValues, setMinMaxValues] = useState({ min: 0, max: 1 });
 
   useEffect(() => {
+    console.log('control1');
     if (!map || selectedYear === null) {
       if (rasterLayer) {
         map.removeLayer(rasterLayer);
@@ -39,10 +41,15 @@ const GeoTIFFViewer = ({ map, isRasterVisible, opacity, selectedYear }) => {
       }
       return;
     }
+    console.log('control2');
 
     const loadRaster = async () => {
       try {
-        if (rasterLayer) map.removeLayer(rasterLayer);
+        console.log('control3');
+        if (rasterLayer) {
+          map.removeLayer(rasterLayer);
+          setRasterLayer(null);
+        }
 
         const response = await fetch(`/geotiff/rl_${selectedYear}_Coquimbo.tif`);
         const arrayBuffer = await response.arrayBuffer();
@@ -82,6 +89,7 @@ const GeoTIFFViewer = ({ map, isRasterVisible, opacity, selectedYear }) => {
         }
 
         ctx.putImageData(imageData, 0, 0);
+        console.log('control4');
 
         // Crear capa y añadir al mapa
         const bounds = image.getBoundingBox();
@@ -95,16 +103,24 @@ const GeoTIFFViewer = ({ map, isRasterVisible, opacity, selectedYear }) => {
           className: 'raster-no-interpolation'
         });
 
-        newRasterLayer.addTo(map);
-        setRasterLayer(newRasterLayer);
-
+        // Asegurarse de que el mapa esté completamente listo
+        if (map && !map.hasLayer(newRasterLayer)) {
+          newRasterLayer.addTo(map);
+          setRasterLayer(newRasterLayer);
+        }
       } catch (error) {
         console.error('Error loading GeoTIFF:', error);
       }
     };
 
-    if (isRasterVisible) loadRaster();
-  }, [isRasterVisible, selectedYear]);
+    console.log('control5');
+    if (isRasterVisible && map) {
+      loadRaster();
+    }
+  }, [isRasterVisible, selectedYear, map, opacity]);
+
+
+  
 
   return (
     <>
