@@ -1,8 +1,8 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import * as GeoTIFF from 'geotiff';
 import L from 'leaflet';
-import '../styles/colorBar.css'; // Importa tu archivo CSS
+import '../styles/colorBar.css';
 
 const COLOR_RAMP = [
   { value: 0, color: [173, 216, 230] },
@@ -30,21 +30,29 @@ const ColorBar = ({ min, max }) => {
 const GeoTIFFViewer = ({ map, isRasterVisible, opacity, selectedYear }) => {
   const [rasterLayer, setRasterLayer] = useState(null);
   const [minMaxValues, setMinMaxValues] = useState({ min: 0, max: 1 });
+  const rasterLayerRef = useRef(null);
+  const canvasRef = useRef(null);
 
   useEffect(() => {
-    if (!map || selectedYear === null) {
-      if (rasterLayer) {
-        map.removeLayer(rasterLayer);
-        setRasterLayer(null);
+    if (!map || !isRasterVisible || selectedYear === null) {
+      if (rasterLayerRef.current) {
+        map.removeLayer(rasterLayerRef.current);
+        rasterLayerRef.current = null;
       }
       return;
     }
 
     const loadRaster = async () => {
       try {
-        if (rasterLayer) map.removeLayer(rasterLayer);
+        // Eliminar capa existente
+        if (rasterLayerRef.current) {
+          map.removeLayer(rasterLayerRef.current);
+        }
 
+        // Cargar el archivo GeoTIFF
         const response = await fetch(`/geotiff/rl_${selectedYear}_Coquimbo.tif`);
+        if (!response.ok) throw new Error('Failed to fetch GeoTIFF');
+        
         const arrayBuffer = await response.arrayBuffer();
         const tiff = await GeoTIFF.fromArrayBuffer(arrayBuffer);
         const image = await tiff.getImage();
@@ -56,8 +64,11 @@ const GeoTIFFViewer = ({ map, isRasterVisible, opacity, selectedYear }) => {
         const max = Math.max(...values);
         setMinMaxValues({ min, max });
 
-        // Crear canvas e imagen
-        const canvas = document.createElement('canvas');
+        // Crear canvas
+        if (!canvasRef.current) {
+          canvasRef.current = document.createElement('canvas');
+        }
+        const canvas = canvasRef.current;
         canvas.width = raster.width;
         canvas.height = raster.height;
         const ctx = canvas.getContext('2d');
@@ -66,10 +77,10 @@ const GeoTIFFViewer = ({ map, isRasterVisible, opacity, selectedYear }) => {
         // Aplicar colores
         for (let i = 0; i < raster[0].length; i++) {
           const value = raster[0][i];
-          const normalizedValue = !isNaN(value) ? value / max : 0;
+          const normalizedValue = !isNaN(value) ? (value - min) / (max - min) : 0;
 
           if (isNaN(value)) {
-            imageData.data[i * 4 + 3] = 0;
+            imageData.data[i * 4 + 3] = 0; // Transparente
           } else {
             const [r1, g1, b1] = COLOR_RAMP[0].color;
             const [r2, g2, b2] = COLOR_RAMP[1].color;
@@ -77,34 +88,47 @@ const GeoTIFFViewer = ({ map, isRasterVisible, opacity, selectedYear }) => {
             imageData.data[i * 4] = r1 + (r2 - r1) * normalizedValue;
             imageData.data[i * 4 + 1] = g1 + (g2 - g1) * normalizedValue;
             imageData.data[i * 4 + 2] = b1 + (b2 - b1) * normalizedValue;
-            imageData.data[i * 4 + 3] = 255;
+            imageData.data[i * 4 + 3] = 255 * opacity; // Aplicar opacidad
           }
         }
 
         ctx.putImageData(imageData, 0, 0);
 
-        // Crear capa y añadir al mapa
+        // Obtener límites geográficos
         const bounds = image.getBoundingBox();
         const boundsLeaflet = L.latLngBounds(
           [bounds[1], bounds[0]],
           [bounds[3], bounds[2]]
         );
 
+        // Crear nueva capa
         const newRasterLayer = L.imageOverlay(canvas.toDataURL(), boundsLeaflet, {
-          opacity,
+          opacity: 1, // La opacidad ya se aplicó en los píxeles
           className: 'raster-no-interpolation'
         });
 
-        newRasterLayer.addTo(map);
-        setRasterLayer(newRasterLayer);
+        // Asegurarse de que el mapa esté listo
+        if (map && map.getPane('overlayPane')) {
+          newRasterLayer.addTo(map);
+          rasterLayerRef.current = newRasterLayer;
+          setRasterLayer(newRasterLayer);
+        } else {
+          console.warn('Map not ready for layer addition');
+        }
 
       } catch (error) {
         console.error('Error loading GeoTIFF:', error);
       }
     };
 
-    if (isRasterVisible) loadRaster();
-  }, [isRasterVisible, selectedYear]);
+    loadRaster();
+
+    return () => {
+      if (rasterLayerRef.current && map) {
+        map.removeLayer(rasterLayerRef.current);
+      }
+    };
+  }, [isRasterVisible, selectedYear, opacity, map]);
 
   return (
     <>

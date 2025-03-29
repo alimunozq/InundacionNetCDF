@@ -110,7 +110,7 @@ const Home = () => {
               <p>⏳ Buscando información...</p>
             ) : (
               <>
-                <p>Dis24: {result?.dis24 ? `${parseFloat(result.dis24).toFixed(3)} [m³/s]` : "No disponible"}</p>
+                <p>Dis24: {result?.dis24_mean ? `${parseFloat(result.dis24).toFixed(3)} [m³/s]` : "No disponible"}</p>
                 {result?.return_threshold && (
                   <div>
                     <h3>Valores de ReturnThreshold:</h3>
