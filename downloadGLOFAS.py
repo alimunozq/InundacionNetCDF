@@ -28,7 +28,7 @@ month = str(fecha_actual.month).zfill(2)
 day = str(fecha_actual.day).zfill(2)
 
 # Ruta del shapefile en formato GeoJSON
-GEOJSON_URL = f"https://github.com/{GITHUB_REPO}/raw/{GITHUB_BRANCH}/frontend/public/shapefiles/RegionCoquimbo_Fixed.geojson"
+GEOJSON_URL = f"https://github.com/{GITHUB_REPO}/raw/{GITHUB_BRANCH}/frontend/public/shapefiles/RegionCoquimbo.geojson"
 
 # Función para descargar datos sin guardar el archivo
 def fetch_rlevel(day, month, year):
