@@ -1,2 +1,7 @@
 cdsapi
 requests
+xarray
+geopandas
+rioxarray
+rasterio
+numpy
