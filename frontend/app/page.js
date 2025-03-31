@@ -99,18 +99,21 @@ const Home = () => {
   const isRasterVisible = selectedYear !== null;
 
 const handleLocationSearch = (place) => {
-  setSelectedLocation(place); 
-  setCoords({
+  console.log('Datos recibidos en handleLocationSearch:', place);
+  
+  const locationData = {
     lat: parseFloat(place.lat),
     lng: parseFloat(place.lon)
-  });
-  setShowChart(true);
+  };
+  
+  setSelectedLocation(locationData);
+  // Ya no llamamos a setCoords aquí
 };
   
-  const handleManualCoordinates = (coords) => {
-    setCoords(coords);
-    setShowChart(true);
-  };
+const handleManualCoordinates = (coords) => {
+  setSelectedLocation(coords);
+  // Ya no llamamos a setCoords aquí
+};
   
 
 
@@ -122,6 +125,26 @@ const handleLocationSearch = (place) => {
     onSearch={handleLocationSearch}
     onCoordinatesSubmit={handleManualCoordinates}
   />
+        {selectedLocation && (
+          <button
+            onClick={() => {
+              setCoords(selectedLocation); // Solo hacemos la consulta cuando se presiona el botón
+              setShowChart(true);
+            }}
+            style={{
+              width: '100%',
+              padding: '8px',
+              backgroundColor: '#4CAF50',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              marginTop: '10px'
+            }}
+          >
+            Consultar en esta ubicación
+          </button>
+        )}
         {coords && (
           <div style={{ marginTop: '20px', padding: '10px', border: '1px solid #ccc', borderRadius: '5px' }}>
             <h2 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '10px' }}>Coordenadas:</h2>
