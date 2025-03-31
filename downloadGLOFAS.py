@@ -87,21 +87,44 @@ def guardar_medias_y_desviaciones(archivo):
     return output_file
 
 # Función para subir archivo a GitHub
+
 def subir_archivo_a_github(folder, file_path):
     print(f"Subiendo archivo: {file_path}")
+    file_name = os.path.basename(file_path)
+    github_url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{folder}/{file_name}"
+    headers = {
+        "Authorization": f"token {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github.v3+json",
+    }
+
+    # Verificar si el archivo ya existe en GitHub
+    response = requests.get(github_url, headers=headers)
+    if response.status_code == 200:
+        file_sha = response.json().get("sha")  # Obtener el SHA si existe
+    else:
+        file_sha = None  # Si no existe, lo subiremos como nuevo archivo
+
     with open(file_path, "rb") as file:
         file_content = file.read()
 
-    url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{folder}/{os.path.basename(file_path)}"
-    headers = {"Authorization": f"token {GITHUB_TOKEN}", "Accept": "application/vnd.github.v3+json"}
-    data = {"message": f"Subiendo {file_path}", "content": base64.b64encode(file_content).decode("utf-8"), "branch": GITHUB_BRANCH}
+    data = {
+        "message": f"Actualizando {file_name}",
+        "content": base64.b64encode(file_content).decode("utf-8"),
+        "branch": GITHUB_BRANCH,
+    }
 
-    response = requests.put(url, headers=headers, json=data)
-    if response.status_code == 201:
-        print(f"Archivo {file_path} subido correctamente.")
+    # Si el archivo ya existe, agregamos su SHA para sobreescribirlo
+    if file_sha:
+        data["sha"] = file_sha
+
+    response = requests.put(github_url, headers=headers, json=data)
+    if response.status_code in [200, 201]:
+        print(f"Archivo {file_name} subido correctamente.")
     else:
-        print(f"Error al subir {file_path}: {response.status_code}")
+        print(f"Error al subir {file_name}: {response.status_code}")
         print(response.json())
+
+
 
 # Función para hacer clipping y generar GeoTIFFs
 def clip_y_generar_geotiffs(archivo_nc):
