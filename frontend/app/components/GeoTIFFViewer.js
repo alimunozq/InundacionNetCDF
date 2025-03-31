@@ -33,7 +33,7 @@ const GeoTIFFViewer = ({ map, isRasterVisible, opacity, selectedYear }) => {
   const [minMaxValues, setMinMaxValues] = useState({ min: 0, max: 1 });
 
   useEffect(() => {
-    console.log('control1');
+
     if (!map || selectedYear === null) {
       if (rasterLayer) {
         map.removeLayer(rasterLayer);
@@ -41,11 +41,11 @@ const GeoTIFFViewer = ({ map, isRasterVisible, opacity, selectedYear }) => {
       }
       return;
     }
-    console.log('control2');
+
 
     const loadRaster = async () => {
       try {
-        console.log('control3');
+
         if (rasterLayer) {
           map.removeLayer(rasterLayer);
           setRasterLayer(null);
@@ -89,7 +89,7 @@ const GeoTIFFViewer = ({ map, isRasterVisible, opacity, selectedYear }) => {
         }
 
         ctx.putImageData(imageData, 0, 0);
-        console.log('control4');
+
 
         // Crear capa y añadir al mapa
         const bounds = image.getBoundingBox();
@@ -113,7 +113,7 @@ const GeoTIFFViewer = ({ map, isRasterVisible, opacity, selectedYear }) => {
       }
     };
 
-    console.log('control5');
+
     if (isRasterVisible && map) {
       loadRaster();
     }

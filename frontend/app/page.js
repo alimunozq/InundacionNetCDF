@@ -4,6 +4,7 @@ import Selector from './components/Selector';
 import dynamic from 'next/dynamic';
 import { getLatestTime } from './utils/getLatestTime';
 import ChartComponent from './components/Chart';
+import LocationSearch from './components/LocationSearch';
 
 const MapView = dynamic(() => import('./components/MapView'), {
   ssr: false,
@@ -19,6 +20,7 @@ const Home = () => {
   const [selectedYear, setSelectedYear] = useState(null);
   const [showChart, setShowChart] = useState(false);
   const [clickPosition, setClickPosition] = useState(null);
+  const [selectedLocation, setSelectedLocation] = useState(null);
 
   // Obtener la fecha más reciente
   useEffect(() => {
@@ -96,21 +98,40 @@ const Home = () => {
 
   const isRasterVisible = selectedYear !== null;
 
+const handleLocationSearch = (place) => {
+  setSelectedLocation(place); 
+  setCoords({
+    lat: parseFloat(place.lat),
+    lng: parseFloat(place.lon)
+  });
+  setShowChart(true);
+};
+  
+  const handleManualCoordinates = (coords) => {
+    setCoords(coords);
+    setShowChart(true);
+  };
+  
+
+
   return (
     <div style={{ display: 'flex', height: '100vh' }}>
       <div style={{ width: '20%', padding: '20px', backgroundColor: 'white', overflowY: 'auto' }}>
         <Selector onChange={handleTChange} latestTime={latestTime} selectedT={selectedT} />
-
+        <LocationSearch 
+    onSearch={handleLocationSearch}
+    onCoordinatesSubmit={handleManualCoordinates}
+  />
         {coords && (
           <div style={{ marginTop: '20px', padding: '10px', border: '1px solid #ccc', borderRadius: '5px' }}>
             <h2 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '10px' }}>Coordenadas:</h2>
-            <p>Latitud: {coords.lat?.toFixed(3)}</p>
-            <p>Longitud: {coords.lng?.toFixed(3)}</p>
+            <p>Latitud: {typeof coords.lat === 'number' ? coords.lat.toFixed(3) : parseFloat(coords.lat).toFixed(3)}</p>
+            <p>Longitud: {typeof coords.lng === 'number' ? coords.lng.toFixed(3) : parseFloat(coords.lng).toFixed(3)}</p>
             {isLoading ? (
               <p>⏳ Buscando información...</p>
             ) : (
               <>
-                <p>Dis24: {result?.dis24_mean ? `${parseFloat(result.dis24).toFixed(3)} [m³/s]` : "No disponible"}</p>
+                <p>Dis24: {result?.dis24_mean ? `${parseFloat(result.dis24_mean).toFixed(3)} [m³/s]` : "No disponible"}</p>
                 {result?.return_threshold && (
                   <div>
                     <h3>Valores de ReturnThreshold:</h3>
@@ -185,6 +206,7 @@ const Home = () => {
           isRasterVisible={isRasterVisible}
           opacity={opacity}
           selectedYear={selectedYear}
+          selectedLocation= {selectedLocation}
           onMapClick={handleMapClick}
         />
 
@@ -215,17 +237,13 @@ const Home = () => {
                   cursor: 'pointer'
                 }}
               >
-                ×
+                X
               </button>
             </div>
             <div style={{ flex: 1 }}>
-              <ChartComponent data={result} />
+              <ChartComponent data={result} coords= {coords}/>
             </div>
-            {clickPosition && (
-              <div style={{ fontSize: '12px', color: '#666', marginTop: '5px' }}>
-                Posición: Lat {clickPosition.lat.toFixed(4)}, Lng {clickPosition.lng.toFixed(4)}
-              </div>
-            )}
+
           </div>
         )}
       </div>

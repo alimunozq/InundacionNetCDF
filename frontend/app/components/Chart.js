@@ -38,7 +38,8 @@ const dis24_std = {
   360: 0.04753288999199867
 };
 */
-const ChartComponent = ({data}) => {
+const ChartComponent = ({data, coords}) => {
+  console.log(coords);
   const dis24_mean = data.dis24_mean
   const dis24_std = data.dis24_std
   let yMin = Infinity;
@@ -76,6 +77,7 @@ const ChartComponent = ({data}) => {
 
   return (
     <div className="chart-container">
+      <span> Pronóstico para lat: {coords.lat}, lon: {coords.lng}</span>
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={formattedData} margin={{ top: 20, right: 30, left: 20, bottom: 40 }}>
           <CartesianGrid strokeDasharray="3 3" />
