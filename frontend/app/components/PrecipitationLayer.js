@@ -86,7 +86,7 @@ const PrecipitationLayer = ({ map, period, onValueChange }) => {
 
     const loadPrecipitationData = async () => {
       try {
-        const tiffUrl = `/coquimbo_meteo/coquimbo_precip_${period}.tif`;
+        const tiffUrl = `/coquimbo_meteo/${period === '12h' ? 'P12' : 'P24'}.tif`;
 
         // Verificar si el archivo existe
         const response = await fetch(tiffUrl, { method: 'HEAD' });
