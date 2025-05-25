@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@shadcn/ui": "^0.0.4",
+    "@turf/turf": "^7.2.0",
     "autoprefixer": "^10.4.20",
     "axios": "^1.8.4",
     "geotiff": "^2.1.3",

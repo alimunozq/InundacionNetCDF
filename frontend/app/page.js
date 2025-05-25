@@ -21,6 +21,8 @@ const Home = () => {
   const [showChart, setShowChart] = useState(false);
   const [clickPosition, setClickPosition] = useState(null);
   const [selectedLocation, setSelectedLocation] = useState(null);
+  const [precipitationPeriod, setPrecipitationPeriod] = useState('none');
+  const [temperaturePeriod, setTemperaturePeriod] = useState('none');
 
   // Obtener la fecha más reciente
   useEffect(() => {
@@ -43,6 +45,7 @@ const Home = () => {
 
   // Manejar clic en el mapa
   const handleMapClick = (clickData) => {
+    console.log('Received click data in main component:', clickData);
     setClickPosition(clickData);
     setShowChart(true);
   };
@@ -121,6 +124,7 @@ const handleManualCoordinates = (coords) => {
     <div style={{ display: 'flex', height: '100vh' }}>
       <div style={{ width: '20%', padding: '20px', backgroundColor: 'white', overflowY: 'auto' }}>
         <Selector onChange={handleTChange} latestTime={latestTime} selectedT={selectedT} />
+ 
         <LocationSearch 
     onSearch={handleLocationSearch}
     onCoordinatesSubmit={handleManualCoordinates}
@@ -155,6 +159,19 @@ const handleManualCoordinates = (coords) => {
             ) : (
               <>
                 <p>Dis24: {result?.dis24_mean ? `${parseFloat(result.dis24_mean).toFixed(3)} [m³/s]` : "No disponible"}</p>
+                {console.log('Click position:', clickPosition)}
+                {clickPosition?.precipitationValue !== undefined && (
+                  <p>Precipitación: {clickPosition.precipitationValue !== null ? 
+                    `${clickPosition.precipitationValue.toFixed(2)} mm` : 
+                    "No disponible"}
+                  </p>
+                )}
+                {clickPosition?.temperatureValue !== undefined && (
+                  <p>Temperatura: {clickPosition.temperatureValue !== null ? 
+                    `${clickPosition.temperatureValue.toFixed(2)} °C` : 
+                    "No disponible"}
+                  </p>
+                )}
                 {result?.return_threshold && (
                   <div>
                     <h3>Valores de ReturnThreshold:</h3>
@@ -202,6 +219,33 @@ const handleManualCoordinates = (coords) => {
             </option>
           ))}
         </select>
+               
+        <div style={{ marginTop: '20px' }}>
+          <label style={{ display: 'block', marginBottom: '5px' }}>Período de Precipitación:</label>
+          <select 
+            value={precipitationPeriod}
+            onChange={(e) => setPrecipitationPeriod(e.target.value)}
+            style={{ width: '100%', padding: '8px', marginBottom: '10px' }}
+          >
+            <option value="none">Ninguno</option>
+            <option value="12h">Precipitación 12 horas</option>
+            <option value="24h">Precipitación 24 horas</option>
+          </select>
+        </div>
+
+        <div style={{ marginTop: '10px' }}>
+          <label style={{ display: 'block', marginBottom: '5px' }}>Período de Temperatura:</label>
+          <select 
+            value={temperaturePeriod}
+            onChange={(e) => setTemperaturePeriod(e.target.value)}
+            style={{ width: '100%', padding: '8px', marginBottom: '10px' }}
+          >
+            <option value="none">Ninguno</option>
+            <option value="12h">Temperatura 12 horas</option>
+            <option value="24h">Temperatura 24 horas</option>
+          </select>
+        </div>
+
 
         {isRasterVisible && (
           <div style={{ marginTop: '20px' }}>
@@ -229,8 +273,10 @@ const handleManualCoordinates = (coords) => {
           isRasterVisible={isRasterVisible}
           opacity={opacity}
           selectedYear={selectedYear}
-          selectedLocation= {selectedLocation}
+          selectedLocation={selectedLocation}
           onMapClick={handleMapClick}
+          precipitationPeriod={precipitationPeriod}
+          temperaturePeriod={temperaturePeriod}
         />
 
         {showChart && result && (

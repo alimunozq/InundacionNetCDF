@@ -125,38 +125,46 @@ const LocationSearch = ({ onSearch, onCoordinatesSubmit }) => {
       <form onSubmit={handleCoordinatesSubmit} style={{ marginTop: '15px' }}>
         <h4 style={{ marginBottom: '10px', fontSize: '14px' }}>O ingresar coordenadas:</h4>
         <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
-          <div style={{ flex: 1 }}>
-            <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}>Latitud</label>
-            <input
-              type="number"
-              step="any"
-              value={coordinates.lat}
-              onChange={(e) => setCoordinates({...coordinates, lat: e.target.value})}
-              placeholder="Ej: -30.123456"
-              style={{
-                width: '100%',
-                padding: '6px',
-                borderRadius: '4px',
-                border: '1px solid #ccc'
-              }}
-            />
-          </div>
-          <div style={{ flex: 1 }}>
-            <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}>Longitud</label>
-            <input
-              type="number"
-              step="any"
-              value={coordinates.lng}
-              onChange={(e) => setCoordinates({...coordinates, lng: e.target.value})}
-              placeholder="Ej: -71.123456"
-              style={{
-                width: '100%',
-                padding: '6px',
-                borderRadius: '4px',
-                border: '1px solid #ccc'
-              }}
-            />
-          </div>
+        <div style={{ flex: 1 }}>
+  <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}>Latitud</label>
+  <input
+    type="number"
+    step="any"
+    value={coordinates.lat}
+    onChange={(e) => setCoordinates({...coordinates, lat: e.target.value})}
+    placeholder="Ej: -30.123456"
+    style={{
+      width: '100%',
+      padding: '6px',
+      borderRadius: '4px',
+      border: '1px solid #ccc',
+      MozAppearance: 'textfield',
+      WebkitAppearance: 'none',
+      appearance: 'textfield',
+      margin: 0
+    }}
+  />
+</div>
+<div style={{ flex: 1 }}>
+  <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px' }}>Longitud</label>
+  <input
+    type="number"
+    step="any"
+    value={coordinates.lng}
+    onChange={(e) => setCoordinates({...coordinates, lng: e.target.value})}
+    placeholder="Ej: -71.123456"
+    style={{
+      width: '100%',
+      padding: '6px',
+      borderRadius: '4px',
+      border: '1px solid #ccc',
+      MozAppearance: 'textfield',
+      WebkitAppearance: 'none',
+      appearance: 'textfield',
+      margin: 0
+    }}
+  />
+</div>
         </div>
         <button
           type="submit"
