@@ -155,7 +155,7 @@ const Home = () => {
         
         const data = await response.json();
         console.log('Respuesta del servidor:', data); // Para depuración
-        console.log('Respuesta mean_dis24',data.mean_dis24, data.mean_dis24[24], data.mean_dis24["24"])
+        console.log('Respuesta mean_dis24',data.dis24_mean, data.dis24_mean[24], data.dis24_mean["24"])
         setResult(data);
       } catch (error) {
         console.error("Error al obtener datos:", error);
