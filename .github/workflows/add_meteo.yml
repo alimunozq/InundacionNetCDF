@@ -1,0 +1,35 @@
+name: Ejecutar Meteorologico Diariamente
+
+on:
+  schedule:
+    # Ejecuta el workflow una vez al día a las 00:00 UTC
+    - cron: "0 20 * * *"
+  workflow_dispatch:  # Permite ejecutar el workflow manualmente
+
+jobs:
+  run-script:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Paso 1: Checkout del repositorio
+      - name: Checkout código
+        uses: actions/checkout@v3
+
+      # Paso 2: Configurar Python
+      - name: Configurar Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"  # Usa la versión de Python que necesites
+
+      # Paso 3: Instalar dependencias
+      - name: Instalar dependencias
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements_Met.txt
+
+      # Paso 4: Ejecutar el script
+      - name: Ejecutar Meteo Downloader
+        env:
+          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_PAT }}
+        run: |
+          python descarga_meteorologico.py
