@@ -1,0 +1,7 @@
+
+requests
+xarray
+rioxarray
+ecmwf.opendata
+datetime
+warnings
