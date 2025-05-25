@@ -12,6 +12,7 @@ import os
 import sys
 import warnings  
 import requests
+import base64
 
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")  # Token de GitHub
 GITHUB_REPO = "alimunozq/InundacionNetCDF"
