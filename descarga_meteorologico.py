@@ -1,4 +1,3 @@
-
 #instala ecmwd y cgbri
 # 
 # #conda install -c conda-forge cfgrib eccodes
@@ -72,7 +71,7 @@ def crop_to_coquimbo(raster_data):
         maxy=COQUIMBO_BBOX["north"]
     )
 
-def process_and_save(data, step, var_name, output_dir):
+def process_and_save(data, step, var_name, output_dir, current_date):
     """Procesa y guarda los datos con CRS definido"""
     # Asignar CRS explícitamente (WGS84)
     data = data.rio.write_crs("EPSG:4326")
@@ -83,15 +82,20 @@ def process_and_save(data, step, var_name, output_dir):
     # Recortar a Coquimbo
     data_coquimbo = crop_to_coquimbo(data)
     
+    # Crear nombre de archivo con formato fecha+(P/T)+(12/24)
+    var_code = "P" if var_name == "precip" else "T"
+    file_prefix = f"{current_date}{var_code}{step}"
+    
     # Guardar como GeoTIFF
-    output_path = os.path.join(output_dir, f"coquimbo_{var_name}_{step}h.tif")
+    output_path = os.path.join(output_dir, f"{file_prefix}.tif")
     data_coquimbo.rio.to_raster(output_path, dtype="float32")
     return output_path
 
 try:
     # Configuración
     target_date = date.today()
-    day = target_date.strftime("%Y%m%d")
+    current_date = target_date.strftime("%d%m%Y")  # Formato DDMMYYYY
+    day = target_date.strftime("%Y%m%d")  # Formato YYYYMMDD para ECMWF
     output_dir = "coquimbo_meteo"
     os.makedirs(output_dir, exist_ok=True)
 
@@ -116,6 +120,10 @@ try:
             warnings.simplefilter("ignore", category=FutureWarning)
             ds = xr.open_dataset(grib_file, engine="cfgrib")
         
+        # Listas para almacenar los paths de los archivos
+        precip_paths = []
+        temp_paths = []
+        
         # Procesar cada paso temporal
         for step_idx, hour in enumerate([12, 24]):
             # Precipitación (mm)
@@ -123,27 +131,29 @@ try:
                 ds.tp.isel(step=step_idx),
                 hour,
                 "precip",
-                output_dir
+                output_dir,
+                current_date
             )
+            precip_paths.append(precip_path)
             
             # Temperatura (°C)
             temp_path = process_and_save(
                 ds.t2m.isel(step=step_idx),
                 hour,
                 "temp",
-                output_dir
+                output_dir,
+                current_date
             )
+            temp_paths.append(temp_path)
         
+        # Subir archivos a GitHub
         print(f"Archivos de Coquimbo generados exitosamente:")
-        print(f"- Precipitación 12h: {os.path.basename(precip_path)}")
-        subir_archivo_a_github("frontend/public/coquimbo_meteo", precip_path)
-        print(f"- Temperatura 12h: {os.path.basename(temp_path)}")
-        subir_archivo_a_github("frontend/public/coquimbo_meteo", temp_path)
-        print(f"- Precipitación 24h: {os.path.basename(precip_path.replace('12h', '24h'))}")
-        subir_archivo_a_github("frontend/public/coquimbo_meteo", precip_path.replace('12h', '24h'))
-        print(f"- Temperatura 24h: {os.path.basename(temp_path.replace('12h', '24h'))}")
-        subir_archivo_a_github("frontend/public/coquimbo_meteo", temp_path.replace('12h', '24h'))
-
+        for i, hour in enumerate([12, 24]):
+            print(f"- Precipitación {hour}h: {os.path.basename(precip_paths[i])}")
+            subir_archivo_a_github("frontend/public/coquimbo_meteo", precip_paths[i])
+            
+            print(f"- Temperatura {hour}h: {os.path.basename(temp_paths[i])}")
+            subir_archivo_a_github("frontend/public/coquimbo_meteo", temp_paths[i])
     
     except Exception as e:
         print(f"Error procesando los datos GRIB: {str(e)}", file=sys.stderr)
