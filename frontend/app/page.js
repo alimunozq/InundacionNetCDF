@@ -154,6 +154,7 @@ const Home = () => {
         if (!response.ok) throw new Error("Error al obtener datos");
         
         const data = await response.json();
+        console.log('Respuesta del servidor:', data); // Para depuración
         setResult(data);
       } catch (error) {
         console.error("Error al obtener datos:", error);
@@ -291,7 +292,7 @@ const handleManualCoordinates = (coords) => {
               <p>⏳ Buscando información...</p>
             ) : (
               <>
-                <p>Caudal 24h: {result?.dis24_mean ? `${parseFloat(result.dis24_mean).toFixed(3)} [m³/s]` : "No disponible"}</p>
+                <p>Caudal 24h: {result?.mean_dis24? `${parseFloat(result.mean_dis24).toFixed(3)} [m³/s]` : "No disponible"}</p>
                 
                 {result?.return_threshold && (
                   <div>
