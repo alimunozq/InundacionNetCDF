@@ -1,23 +1,35 @@
-#instala ecmwd y cgbri
-# 
-# #conda install -c conda-forge cfgrib eccodes
-#conda install -c conda-forge ecmwf-opendata
-
 from ecmwf.opendata import Client
 import xarray as xr
 import rioxarray
-from datetime import date
+from datetime import datetime
 import os
 import sys
 import warnings  
 import requests
 import base64
+import json
 
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")  # Token de GitHub
 GITHUB_REPO = "alimunozq/InundacionNetCDF"
 GITHUB_BRANCH = "main"
 
+def escribir_log(files_list, output_dir="coquimbo_meteo"):
+    """Escribe un archivo log.txt con formato de diccionario"""
+    log_data = {
+        "fecha": datetime.now().strftime("%d%m%Y"),
+        "files": files_list
+    }
+    
+    log_path = os.path.join(output_dir, "log.txt")
+    
+    with open(log_path, "w") as f:
+        json.dump(log_data, f, indent=4)
+    
+    print(f"Log generado: {log_path}")
+    return log_path
+
 def subir_archivo_a_github(folder, file_path):
+    """Sube un archivo a GitHub"""
     print(f"Subiendo archivo: {file_path}")
     file_name = os.path.basename(file_path)
     github_url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{folder}/{file_name}"
@@ -29,9 +41,9 @@ def subir_archivo_a_github(folder, file_path):
     # Verificar si el archivo ya existe en GitHub
     response = requests.get(github_url, headers=headers)
     if response.status_code == 200:
-        file_sha = response.json().get("sha")  # Obtener el SHA si existe
+        file_sha = response.json().get("sha")
     else:
-        file_sha = None  # Si no existe, lo subiremos como nuevo archivo
+        file_sha = None
 
     with open(file_path, "rb") as file:
         file_content = file.read()
@@ -42,7 +54,6 @@ def subir_archivo_a_github(folder, file_path):
         "branch": GITHUB_BRANCH,
     }
 
-    # Si el archivo ya existe, agregamos su SHA para sobreescribirlo
     if file_sha:
         data["sha"] = file_sha
 
@@ -52,7 +63,6 @@ def subir_archivo_a_github(folder, file_path):
     else:
         print(f"Error al subir {file_name}: {response.status_code}")
         print(response.json())
-
 
 # Coordenadas de Coquimbo, Chile [north, south, west, east]
 COQUIMBO_BBOX = {
@@ -71,7 +81,7 @@ def crop_to_coquimbo(raster_data):
         maxy=COQUIMBO_BBOX["north"]
     )
 
-def process_and_save(data, step, var_name, output_dir, current_date):
+def process_and_save(data, step, var_name, output_dir):
     """Procesa y guarda los datos con CRS definido"""
     # Asignar CRS explícitamente (WGS84)
     data = data.rio.write_crs("EPSG:4326")
@@ -82,91 +92,90 @@ def process_and_save(data, step, var_name, output_dir, current_date):
     # Recortar a Coquimbo
     data_coquimbo = crop_to_coquimbo(data)
     
-    # Crear nombre de archivo con formato fecha+(P/T)+(12/24)
+    # Crear nombre de archivo con formato P/T+(12/24)
     var_code = "P" if var_name == "precip" else "T"
-    file_prefix = f"{current_date}{var_code}{step}"
+    file_name = f"{var_code}{step}.tif"
+    output_path = os.path.join(output_dir, file_name)
     
     # Guardar como GeoTIFF
-    output_path = os.path.join(output_dir, f"{file_prefix}.tif")
     data_coquimbo.rio.to_raster(output_path, dtype="float32")
-    return output_path
-
-try:
-    # Configuración
-    target_date = date.today()
-    current_date = target_date.strftime("%d%m%Y")  # Formato DDMMYYYY
-    day = target_date.strftime("%Y%m%d")  # Formato YYYYMMDD para ECMWF
-    output_dir = "coquimbo_meteo"
-    os.makedirs(output_dir, exist_ok=True)
-
-    # 1. Descargar datos
-    client = Client(source="ecmwf")
-    request = {
-        "date": day,
-        "time": 0,
-        "type": "fc",
-        "step": [12, 24],
-        "param": ["tp", "2t"],
-        "levtype": "sfc"
-    }
     
-    grib_file = os.path.join(output_dir, "data.grib2")
-    client.retrieve(request, grib_file)
+    return output_path, file_name
 
-    # 2. Procesar datos
+def main():
     try:
-        # Abrir con cfgrib (ignorar advertencia de decode_timedelta)
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", category=FutureWarning)
-            ds = xr.open_dataset(grib_file, engine="cfgrib")
-        
-        # Listas para almacenar los paths de los archivos
-        precip_paths = []
-        temp_paths = []
-        
-        # Procesar cada paso temporal
-        for step_idx, hour in enumerate([12, 24]):
-            # Precipitación (mm)
-            precip_path = process_and_save(
-                ds.tp.isel(step=step_idx),
-                hour,
-                "precip",
-                output_dir,
-                current_date
-            )
-            precip_paths.append(precip_path)
-            
-            # Temperatura (°C)
-            temp_path = process_and_save(
-                ds.t2m.isel(step=step_idx),
-                hour,
-                "temp",
-                output_dir,
-                current_date
-            )
-            temp_paths.append(temp_path)
-        
-        # Subir archivos a GitHub
-        print(f"Archivos de Coquimbo generados exitosamente:")
-        for i, hour in enumerate([12, 24]):
-            print(f"- Precipitación {hour}h: {os.path.basename(precip_paths[i])}")
-            subir_archivo_a_github("frontend/public/coquimbo_meteo", precip_paths[i])
-            
-            print(f"- Temperatura {hour}h: {os.path.basename(temp_paths[i])}")
-            subir_archivo_a_github("frontend/public/coquimbo_meteo", temp_paths[i])
-    
-    except Exception as e:
-        print(f"Error procesando los datos GRIB: {str(e)}", file=sys.stderr)
-        sys.exit(1)
-        
-    finally:
-        # Limpiar archivo temporal
-        if os.path.exists(grib_file):
-            os.remove(grib_file)
+        # Configuración
+        output_dir = "coquimbo_meteo"
+        os.makedirs(output_dir, exist_ok=True)
+        generated_files = []
 
-except ModuleNotFoundError as e:
-    print(f"Error: {str(e)}", file=sys.stderr)
-    print("Soluciones posibles:", file=sys.stderr)
-    print("1. Instala ecmwf-opendata: conda install -c conda-forge ecmwf-opendata", file=sys.stderr)
-    print("2. Instala cfgrib: conda install -c conda-forge cfgrib eccodes", file=sys.stderr)
-    sys.exit(1)
+        # 1. Descargar datos
+        client = Client(source="ecmwf")
+        request = {
+            "date": datetime.now().strftime("%Y%m%d"),
+            "time": 0,
+            "type": "fc",
+            "step": [12, 24],
+            "param": ["tp", "2t"],
+            "levtype": "sfc"
+        }
+        
+        grib_file = os.path.join(output_dir, "data.grib2")
+        client.retrieve(request, grib_file)
+
+        # 2. Procesar datos
+        try:
+            # Abrir con cfgrib
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", category=FutureWarning)
+                ds = xr.open_dataset(grib_file, engine="cfgrib")
+            
+            # Procesar cada paso temporal
+            for step_idx, hour in enumerate([12, 24]):
+                # Precipitación (mm)
+                precip_path, precip_name = process_and_save(
+                    ds.tp.isel(step=step_idx),
+                    hour,
+                    "precip",
+                    output_dir
+                )
+                generated_files.append(precip_name)
+                
+                # Temperatura (°C)
+                temp_path, temp_name = process_and_save(
+                    ds.t2m.isel(step=step_idx),
+                    hour,
+                    "temp",
+                    output_dir
+                )
+                generated_files.append(temp_name)
+            
+            # Generar archivo log
+            log_path = escribir_log(generated_files, output_dir)
+            
+            # Subir archivos a GitHub (incluyendo el log)
+            all_files = [
+                *[os.path.join(output_dir, f) for f in generated_files],
+                log_path
+            ]
+            
+            for file_path in all_files:
+                subir_archivo_a_github("frontend/public/coquimbo_meteo", file_path)
+        
+        except Exception as e:
+            print(f"Error procesando los datos GRIB: {str(e)}", file=sys.stderr)
+            sys.exit(1)
+            
+        finally:
+            if os.path.exists(grib_file):
+                os.remove(grib_file)
+
+    except ModuleNotFoundError as e:
+        print(f"Error: {str(e)}", file=sys.stderr)
+        print("Soluciones posibles:", file=sys.stderr)
+        print("1. Instala ecmwf-opendata: conda install -c conda-forge ecmwf-opendata", file=sys.stderr)
+        print("2. Instala cfgrib: conda install -c conda-forge cfgrib eccodes", file=sys.stderr)
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
