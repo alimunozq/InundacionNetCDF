@@ -13,7 +13,7 @@ from tempfile import NamedTemporaryFile
 
 # Obtener las credenciales desde variables de entorno
 CDSAPI_URL = os.getenv("CDSAPI_URL")  # URL de la API de Copernicus
-print('URL',CDSAPI_URL)
+
 CDSAPI_KEY = os.getenv("CDSAPI_KEY")  # Clave de la API
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")  # Token de GitHub
 GITHUB_REPO = "alimunozq/InundacionNetCDF"
