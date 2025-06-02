@@ -19,7 +19,7 @@ jobs:
       - name: Configurar Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.9"  # Usa la versión de Python que necesites
+          python-version: "3.9"
 
       # Paso 3: Instalar dependencias
       - name: Instalar dependencias
@@ -36,7 +36,16 @@ jobs:
           echo "CDSAPI_KEY empieza con: ${CDSAPI_KEY:0:5}"
           echo "CDSAPI_URL empieza con: ${CDSAPI_URL:0:5}"
 
-      # Paso 4: Ejecutar el script
+      - name: Verificar si existe .cdsapirc
+        run: |
+          if [ -f ~/.cdsapirc ]; then
+            echo ".cdsapirc encontrado:"
+            head -n 5 ~/.cdsapirc
+          else
+            echo "No existe .cdsapirc"
+          fi
+
+      # Paso 5: Ejecutar el script principal
       - name: Ejecutar GloFAS Downloader
         env:
           CDSAPI_URL: ${{ secrets.CDSAPI_URL }}
