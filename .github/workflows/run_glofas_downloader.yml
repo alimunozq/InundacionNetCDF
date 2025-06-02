@@ -27,6 +27,15 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      # Paso 4: Verificar carga de secrets (debug temporal)
+      - name: Verificar primeros caracteres de CDSAPI_KEY y CDSAPI_URL
+        env:
+          CDSAPI_KEY: ${{ secrets.CDSAPI_KEY }}
+          CDSAPI_URL: ${{ secrets.CDSAPI_URL }}
+        run: |
+          echo "CDSAPI_KEY empieza con: ${CDSAPI_KEY:0:5}"
+          echo "CDSAPI_URL empieza con: ${CDSAPI_URL:0:5}"
+
       # Paso 4: Ejecutar el script
       - name: Ejecutar GloFAS Downloader
         env:
